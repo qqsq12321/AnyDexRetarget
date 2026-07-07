@@ -5,6 +5,7 @@ send them to real hardware via:
 - wujihandpy (Wuji Hand)
 - TCP socket bridge (Shadow Hand)
 - direct serial protocol (Inspire RH56DFX)
+- dynamixel_client (LEAP Hand)
 """
 
 import argparse
@@ -176,6 +177,90 @@ class InspireSerialOutput:
             print(f"Closed Inspire hand serial at {self._port_name} @ {self._baudrate} baud.")
 
 
+class LeapOutput:
+    """Output driver for LEAP Hand via dynamixel_client."""
+
+    def __init__(self, port_name: str = "COM3"):
+        import sys
+        from pathlib import Path
+        
+        # Dynamically add LEAP SDK to path to avoid polluting global scope
+        project_root = Path(__file__).resolve().parents[1]
+        leap_api_path = project_root.parent / "LEAP_Hand_API" / "python"
+        if str(leap_api_path) not in sys.path:
+            sys.path.insert(0, str(leap_api_path))
+            
+        try:
+            from leap_hand_utils.dynamixel_client import DynamixelClient
+            import leap_hand_utils.leap_hand_utils as lhu
+            self.lhu = lhu
+            self.DynamixelClient = DynamixelClient
+        except ImportError as exc:
+            raise ImportError(
+                f"LEAP_Hand_API not found or missing dependencies.\n"
+                f"Please clone the SDK to the parallel directory of this project:\n"
+                f"  cd {project_root.parent}\n"
+                f"  git clone https://github.com/leap-hand/LEAP_Hand_API.git\n"
+                f"And install its dependencies: pip install dynamixel-sdk"
+            ) from exc
+
+        self.kP = 600
+        self.kI = 0
+        self.kD = 200
+        self.curr_lim = 350
+        self.motors = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+        
+        print(f"Connecting to LEAP Hand on port {port_name}...")
+        self.dxl_client = self.DynamixelClient(self.motors, port_name, 4000000)
+        self.dxl_client.connect()
+        
+        self.dxl_client.sync_write(self.motors, np.ones(len(self.motors))*5, 11, 1)
+        self.dxl_client.set_torque_enabled(self.motors, True)
+        self.dxl_client.sync_write(self.motors, np.ones(len(self.motors)) * self.kP, 84, 2)
+        self.dxl_client.sync_write([0,4,8], np.ones(3) * (self.kP * 0.75), 84, 2)
+        self.dxl_client.sync_write(self.motors, np.ones(len(self.motors)) * self.kI, 82, 2)
+        self.dxl_client.sync_write(self.motors, np.ones(len(self.motors)) * self.kD, 80, 2)
+        self.dxl_client.sync_write([0,4,8], np.ones(3) * (self.kD * 0.75), 80, 2)
+        self.dxl_client.sync_write(self.motors, np.ones(len(self.motors)) * self.curr_lim, 102, 2)
+        
+        try:
+            print("[LEAP Driver] Connected! Initial physical motor angles (rad):", np.round(self.dxl_client.read_pos()[:4], 2), "... (showing motors 0-3)")
+        except Exception as e:
+            pass
+            
+        # Move to home position
+        home_pos = self.lhu.LEAPsim_to_LEAPhand(np.zeros(16))
+        print("[LEAP Driver] Moving to home position (rad):", np.round(home_pos[:4], 2), "...")
+        self.dxl_client.write_desired_pos(self.motors, home_pos)
+        time.sleep(0.5)
+
+    def send(self, qpos, joint_names):
+        # The qpos array from AnyDexRetarget is ordered according to the URDF (e.g. '1', '0', '2'...)
+        # We need to map it back to motor ID order 0-15
+        ordered_qpos = np.zeros(16, dtype=np.float32)
+        for val, name in zip(qpos, joint_names):
+            # LEAP URDF joint names are literally the motor IDs ('0', '1', '2'...)
+            try:
+                motor_id = int(name)
+                ordered_qpos[motor_id] = val
+            except ValueError:
+                continue
+                
+        # CRITICAL FIX: Convert from Sim coordinates (~0 rad) to Real motor coordinates (~3.14 rad) FIRST
+        real_pos = self.lhu.LEAPsim_to_LEAPhand(ordered_qpos)
+        # Apply safety clip which expects angles in Real motor coordinates (~3.14 rad)
+        real_pos_safe = self.lhu.angle_safety_clip(real_pos)
+        
+        self.dxl_client.write_desired_pos(self.motors, real_pos_safe)
+
+    def close(self):
+        try:
+            self.dxl_client.set_torque_enabled(self.motors, False)
+            self.dxl_client.disconnect()
+        except:
+            pass
+
+
 # -------------------- Teleoperation --------------------
 
 def run_teleop(
@@ -207,6 +292,7 @@ def run_teleop(
     inspire_port: str = "/dev/ttyUSB0",
     inspire_baudrate: int = 115200,
     inspire_hand_id: int = 1,
+    leap_port: str = "COM3",
 ):
     """Run teleoperation with real hardware.
 
@@ -227,6 +313,8 @@ def run_teleop(
             baudrate=inspire_baudrate,
             hand_id=inspire_hand_id,
         )
+    elif robot_type == "leap":
+        output = LeapOutput(port_name=leap_port)
     else:
         raise ValueError(f"Unknown robot type: {robot_type}")
 
@@ -406,6 +494,9 @@ Examples:
   # Inspire Hand via direct serial control
   python teleop_real.py --robot inspire --input noitom --hand right --noitom-local-ip 192.168.5.25 --inspire-port /dev/ttyUSB0
 
+  # LEAP Hand via Quest 3
+  python teleop_real.py --robot leap --input quest3 --quest3-protocol tcp --quest3-port 9000 --leap-port COM3
+
   # Pico 4 direct mode with PC broadcast discovery
   python teleop_real.py --robot inspire --input pico4 --hand right --pico4-mode direct --inspire-port /dev/ttyUSB0
 
@@ -426,7 +517,7 @@ Examples:
                         choices=["adaptive", "vector"],
                         help="Optimizer type: adaptive (default) or vector (KeyVectorOptimizer)")
     parser.add_argument("--robot", type=str, default="wuji",
-                        choices=["wuji", "shadow", "inspire"],
+                        choices=["wuji", "shadow", "inspire", "leap"],
                         help="Robot hand type (default: wuji)")
     parser.add_argument("--hand", type=str, default="right", choices=["left", "right"],
                         help="Hand side (default: right)")
@@ -493,6 +584,8 @@ Examples:
                         help="Inspire serial baudrate (default: 115200, for --robot inspire)")
     parser.add_argument("--inspire-hand-id", type=int, default=1,
                         help="Inspire hand ID in serial protocol (default: 1, for --robot inspire)")
+    parser.add_argument("--leap-port", type=str, default="COM3",
+                        help="LEAP Hand serial port (default: COM3, for --robot leap)")
 
     args = parser.parse_args()
 
@@ -524,6 +617,7 @@ Examples:
             "wuji": "wuji_hand",
             "shadow": "shadow_hand",
             "inspire": "inspire_hand",
+            "leap": "leap_hand",
         }
         input_to_dir = {
             "quest3": "quest3",
@@ -564,6 +658,7 @@ Examples:
         inspire_port=args.inspire_port,
         inspire_baudrate=args.inspire_baudrate,
         inspire_hand_id=args.inspire_hand_id,
+        leap_port=args.leap_port,
     )
 
     if log is not None and len(log) > 0:
