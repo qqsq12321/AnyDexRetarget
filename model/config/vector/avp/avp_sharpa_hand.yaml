@@ -1,0 +1,46 @@
+# Sharpa Hand - KeyVectorOptimizer (VisionPro AVP input)
+# Scale values from avp_wuji_hand.yaml
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "sharpa_hand"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: right_hand_C_MC, task: right_thumb_PP,         origin_kp: 0, task_kp:  2, scale: 1.251}
+    - {origin: right_hand_C_MC, task: right_thumb_DP,         origin_kp: 0, task_kp:  3, scale: 1.259}
+    - {origin: right_hand_C_MC, task: right_thumb_fingertip,  origin_kp: 0, task_kp:  4, scale: 1.214}
+    # index
+    - {origin: right_hand_C_MC, task: right_index_MP,         origin_kp: 0, task_kp:  6, scale: 1.108}
+    - {origin: right_hand_C_MC, task: right_index_DP,         origin_kp: 0, task_kp:  7, scale: 1.148}
+    - {origin: right_hand_C_MC, task: right_index_fingertip,  origin_kp: 0, task_kp:  8, scale: 1.16}
+    # middle
+    - {origin: right_hand_C_MC, task: right_middle_MP,        origin_kp: 0, task_kp: 10, scale: 1.101}
+    - {origin: right_hand_C_MC, task: right_middle_DP,        origin_kp: 0, task_kp: 11, scale: 1.115}
+    - {origin: right_hand_C_MC, task: right_middle_fingertip, origin_kp: 0, task_kp: 12, scale: 1.128}
+    # ring
+    - {origin: right_hand_C_MC, task: right_ring_MP,          origin_kp: 0, task_kp: 14, scale: 1.117}
+    - {origin: right_hand_C_MC, task: right_ring_DP,          origin_kp: 0, task_kp: 15, scale: 1.141}
+    - {origin: right_hand_C_MC, task: right_ring_fingertip,   origin_kp: 0, task_kp: 16, scale: 1.155}
+    # pinky
+    - {origin: right_hand_C_MC, task: right_pinky_MP,         origin_kp: 0, task_kp: 18, scale: 1.212}
+    - {origin: right_hand_C_MC, task: right_pinky_DP,         origin_kp: 0, task_kp: 19, scale: 1.29}
+    - {origin: right_hand_C_MC, task: right_pinky_fingertip,  origin_kp: 0, task_kp: 20, scale: 1.305}
+
+  mediapipe_rotation:
+    x: -5.0
+    y: -5.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5

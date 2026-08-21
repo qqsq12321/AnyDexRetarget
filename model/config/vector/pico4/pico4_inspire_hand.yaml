@@ -1,0 +1,61 @@
+# Inspire Hand - KeyVectorOptimizer (Pico 4 input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "inspire_hand"
+  urdf_path: "assets/inspire_hand/inspire_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2, scale: 
+      1.095}
+  - {origin: hand_base_link, task: thumb_intermediate, origin_kp: 0, task_kp: 3, 
+      scale: 1.332}
+  - {origin: hand_base_link, task: thumb_tip, origin_kp: 0, task_kp: 4, scale: 
+      1.393}
+    # index
+  - {origin: hand_base_link, task: index_proximal, origin_kp: 0, task_kp: 6, 
+      scale: 1.137}
+  - {origin: hand_base_link, task: index_intermediate, origin_kp: 0, task_kp: 7, 
+      scale: 1.196}
+  - {origin: hand_base_link, task: index_tip, origin_kp: 0, task_kp: 8, scale: 
+      1.315}
+    # middle
+  - {origin: hand_base_link, task: middle_proximal, origin_kp: 0, task_kp: 10, 
+      scale: 1.086}
+  - {origin: hand_base_link, task: middle_intermediate, origin_kp: 0, task_kp: 
+      11, scale: 1.128}
+  - {origin: hand_base_link, task: middle_tip, origin_kp: 0, task_kp: 12, scale: 
+      1.245}
+    # ring
+  - {origin: hand_base_link, task: ring_proximal, origin_kp: 0, task_kp: 14, 
+      scale: 1.127}
+  - {origin: hand_base_link, task: ring_intermediate, origin_kp: 0, task_kp: 15, 
+      scale: 1.19}
+  - {origin: hand_base_link, task: ring_tip, origin_kp: 0, task_kp: 16, scale: 
+      1.311}
+    # pinky
+  - {origin: hand_base_link, task: pinky_proximal, origin_kp: 0, task_kp: 18, 
+      scale: 1.279}
+  - {origin: hand_base_link, task: pinky_intermediate, origin_kp: 0, task_kp: 19,
+    scale: 1.364}
+  - {origin: hand_base_link, task: pinky_tip, origin_kp: 0, task_kp: 20, scale: 
+      1.441}
+
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: -20.0
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

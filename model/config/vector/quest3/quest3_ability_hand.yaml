@@ -1,0 +1,46 @@
+# Ability Hand - KeyVectorOptimizer (Quest 3 HTS input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "ability_hand"
+  urdf_path: "assets/ability_hand/ability_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: base, task: thumb_L1,  origin_kp: 0, task_kp:  2, scale: 0.51}
+    - {origin: base, task: thumb_L2,  origin_kp: 0, task_kp:  3, scale: 0.643}
+    - {origin: base, task: thumb_tip, origin_kp: 0, task_kp:  4, scale: 0.98}
+    # index
+    - {origin: base, task: index_L1,  origin_kp: 0, task_kp:  6, scale: 0.765}
+    - {origin: base, task: index_L2,  origin_kp: 0, task_kp:  7, scale: 0.899}
+    - {origin: base, task: index_tip, origin_kp: 0, task_kp:  8, scale: 0.993}
+    # middle
+    - {origin: base, task: middle_L1,  origin_kp: 0, task_kp: 10, scale: 0.764}
+    - {origin: base, task: middle_L2,  origin_kp: 0, task_kp: 11, scale: 0.879}
+    - {origin: base, task: middle_tip, origin_kp: 0, task_kp: 12, scale: 0.972}
+    # ring
+    - {origin: base, task: ring_L1,  origin_kp: 0, task_kp: 14, scale: 0.794}
+    - {origin: base, task: ring_L2,  origin_kp: 0, task_kp: 15, scale: 0.918}
+    - {origin: base, task: ring_tip, origin_kp: 0, task_kp: 16, scale: 1.013}
+    # pinky
+    - {origin: base, task: pinky_L1,  origin_kp: 0, task_kp: 18, scale: 0.861}
+    - {origin: base, task: pinky_L2,  origin_kp: 0, task_kp: 19, scale: 1.034}
+    - {origin: base, task: pinky_tip, origin_kp: 0, task_kp: 20, scale: 1.139}
+
+  mediapipe_rotation:
+    x: 0.0
+    y: -5.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

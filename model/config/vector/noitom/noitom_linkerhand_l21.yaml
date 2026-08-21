@@ -1,0 +1,45 @@
+# LinkerHand L21 - KeyVectorOptimizer (Noitom PNS-G input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "linkerhand_l21"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: hand_base_link, task: thumb_metacarpals, origin_kp: 0, task_kp:  2, scale: 1.181}
+    - {origin: hand_base_link, task: thumb_distal,      origin_kp: 0, task_kp:  3, scale: 1.313}
+    - {origin: hand_base_link, task: thumb_tip,         origin_kp: 0, task_kp:  4, scale: 1.5}
+    # index
+    - {origin: hand_base_link, task: index_proximal,    origin_kp: 0, task_kp:  6, scale: 1.331}
+    - {origin: hand_base_link, task: index_middle,      origin_kp: 0, task_kp:  7, scale: 1.412}
+    - {origin: hand_base_link, task: index_tip,         origin_kp: 0, task_kp:  8, scale: 1.367}
+    # middle
+    - {origin: hand_base_link, task: middle_proximal,   origin_kp: 0, task_kp: 10, scale: 1.375}
+    - {origin: hand_base_link, task: middle_middle,     origin_kp: 0, task_kp: 11, scale: 1.414}
+    - {origin: hand_base_link, task: middle_tip,        origin_kp: 0, task_kp: 12, scale: 1.366}
+    # ring
+    - {origin: hand_base_link, task: ring_proximal,     origin_kp: 0, task_kp: 14, scale: 1.397}
+    - {origin: hand_base_link, task: ring_middle,       origin_kp: 0, task_kp: 15, scale: 1.451}
+    - {origin: hand_base_link, task: ring_tip,          origin_kp: 0, task_kp: 16, scale: 1.401}
+    # pinky
+    - {origin: hand_base_link, task: pinky_proximal,    origin_kp: 0, task_kp: 18, scale: 1.45}
+    - {origin: hand_base_link, task: pinky_middle,      origin_kp: 0, task_kp: 19, scale: 1.589}
+    - {origin: hand_base_link, task: pinky_tip,         origin_kp: 0, task_kp: 20, scale: 1.536}
+
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: -20.0
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

@@ -1,0 +1,46 @@
+# ROHand - KeyVectorOptimizer (Quest 3 HTS input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "rohand"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: base_link, task: th_root_link,     origin_kp: 0, task_kp:  2, scale: 0.451}
+    - {origin: base_link, task: th_proximal_link,  origin_kp: 0, task_kp:  3, scale: 0.662}
+    - {origin: base_link, task: th_distal_link,    origin_kp: 0, task_kp:  4, scale: 0.892}
+    # index
+    - {origin: base_link, task: if_slider_abpart_link, origin_kp: 0, task_kp:  6, scale: 0.801}
+    - {origin: base_link, task: if_proximal_link,      origin_kp: 0, task_kp:  7, scale: 0.745}
+    - {origin: base_link, task: if_distal_link,        origin_kp: 0, task_kp:  8, scale: 0.862}
+    # middle
+    - {origin: base_link, task: mf_slider_abpart_link, origin_kp: 0, task_kp: 10, scale: 0.799}
+    - {origin: base_link, task: mf_proximal_link,      origin_kp: 0, task_kp: 11, scale: 0.731}
+    - {origin: base_link, task: mf_distal_link,        origin_kp: 0, task_kp: 12, scale: 0.871}
+    # ring
+    - {origin: base_link, task: rf_slider_abpart_link, origin_kp: 0, task_kp: 14, scale: 0.829}
+    - {origin: base_link, task: rf_proximal_link,      origin_kp: 0, task_kp: 15, scale: 0.76}
+    - {origin: base_link, task: rf_distal_link,        origin_kp: 0, task_kp: 16, scale: 0.876}
+    # pinky
+    - {origin: base_link, task: lf_slider_abpart_link, origin_kp: 0, task_kp: 18, scale: 0.92}
+    - {origin: base_link, task: lf_proximal_link,      origin_kp: 0, task_kp: 19, scale: 0.878}
+    - {origin: base_link, task: lf_distal_link,        origin_kp: 0, task_kp: 20, scale: 0.976}
+
+  mediapipe_rotation:
+    x: 180.0
+    y: 90.0
+    z: -20.0
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5
+    lookat: [0, 0, 0.05]

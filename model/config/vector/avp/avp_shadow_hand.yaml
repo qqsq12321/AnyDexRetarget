@@ -1,0 +1,48 @@
+# Shadow Hand - KeyVectorOptimizer (VisionPro AVP input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "shadow_hand"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  clamp_joint_lower:
+    "J3": 0.0
+
+  key_vectors:
+    # thumb
+    - {origin: rh_palm, task: rh_thmiddle,  origin_kp: 0, task_kp:  2, scale: 0.81}
+    - {origin: rh_palm, task: rh_thdistal,  origin_kp: 0, task_kp:  3, scale: 0.81}
+    - {origin: rh_palm, task: rh_thtip,     origin_kp: 0, task_kp:  4, scale: 0.81}
+    # index finger
+    - {origin: rh_palm, task: rh_ffmiddle,  origin_kp: 0, task_kp:  6, scale: 0.81}
+    - {origin: rh_palm, task: rh_ffdistal,  origin_kp: 0, task_kp:  7, scale: 0.81}
+    - {origin: rh_palm, task: rh_fftip,     origin_kp: 0, task_kp:  8, scale: 0.81}
+    # middle finger
+    - {origin: rh_palm, task: rh_mfmiddle,  origin_kp: 0, task_kp: 10, scale: 0.81}
+    - {origin: rh_palm, task: rh_mfdistal,  origin_kp: 0, task_kp: 11, scale: 0.81}
+    - {origin: rh_palm, task: rh_mftip,     origin_kp: 0, task_kp: 12, scale: 0.81}
+    # ring finger
+    - {origin: rh_palm, task: rh_rfmiddle,  origin_kp: 0, task_kp: 14, scale: 0.81}
+    - {origin: rh_palm, task: rh_rfdistal,  origin_kp: 0, task_kp: 15, scale: 0.81}
+    - {origin: rh_palm, task: rh_rftip,     origin_kp: 0, task_kp: 16, scale: 0.81}
+    # little finger
+    - {origin: rh_palm, task: rh_lfmiddle,  origin_kp: 0, task_kp: 18, scale: 0.81}
+    - {origin: rh_palm, task: rh_lfdistal,  origin_kp: 0, task_kp: 19, scale: 0.81}
+    - {origin: rh_palm, task: rh_lftip,     origin_kp: 0, task_kp: 20, scale: 0.81}
+
+  mediapipe_rotation:
+    x: -10.0
+    y: 0.0
+    z: -90.0
+
+render:
+  camera:
+    azimuth: 180
+    elevation: 0.0
+    distance: 1.0

@@ -1,0 +1,46 @@
+# Sharpa Hand - KeyVectorOptimizer (Quest 3 HTS input)
+# Scale values from quest3_wuji_hand.yaml
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "sharpa_hand"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: right_hand_C_MC, task: right_thumb_PP,         origin_kp: 0, task_kp:  2, scale: 1.0}
+    - {origin: right_hand_C_MC, task: right_thumb_DP,         origin_kp: 0, task_kp:  3, scale: 1.0}
+    - {origin: right_hand_C_MC, task: right_thumb_fingertip,  origin_kp: 0, task_kp:  4, scale: 1.0}
+    # index
+    - {origin: right_hand_C_MC, task: right_index_MP,         origin_kp: 0, task_kp:  6, scale: 1.02}
+    - {origin: right_hand_C_MC, task: right_index_DP,         origin_kp: 0, task_kp:  7, scale: 1.05}
+    - {origin: right_hand_C_MC, task: right_index_fingertip,  origin_kp: 0, task_kp:  8, scale: 1.05}
+    # middle
+    - {origin: right_hand_C_MC, task: right_middle_MP,        origin_kp: 0, task_kp: 10, scale: 1.0}
+    - {origin: right_hand_C_MC, task: right_middle_DP,        origin_kp: 0, task_kp: 11, scale: 1.0}
+    - {origin: right_hand_C_MC, task: right_middle_fingertip, origin_kp: 0, task_kp: 12, scale: 1.0}
+    # ring
+    - {origin: right_hand_C_MC, task: right_ring_MP,          origin_kp: 0, task_kp: 14, scale: 1.0}
+    - {origin: right_hand_C_MC, task: right_ring_DP,          origin_kp: 0, task_kp: 15, scale: 1.0}
+    - {origin: right_hand_C_MC, task: right_ring_fingertip,   origin_kp: 0, task_kp: 16, scale: 1.0}
+    # pinky
+    - {origin: right_hand_C_MC, task: right_pinky_MP,         origin_kp: 0, task_kp: 18, scale: 1.05}
+    - {origin: right_hand_C_MC, task: right_pinky_DP,         origin_kp: 0, task_kp: 19, scale: 1.12}
+    - {origin: right_hand_C_MC, task: right_pinky_fingertip,  origin_kp: 0, task_kp: 20, scale: 1.15}
+
+  mediapipe_rotation:
+    x: -2.0
+    y: -7.0
+    z: -15.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5

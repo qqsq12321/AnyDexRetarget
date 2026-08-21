@@ -1,0 +1,43 @@
+# Leap Hand - KeyVectorOptimizer (VisionPro AVP input)
+# 4 fingers: thumb, index, middle, ring (no pinky)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "leap_hand"
+  urdf_path: "assets/leap_hand/leap_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: base, task: thumb_dip,       origin_kp: 0, task_kp:  2, scale: 0.887}
+    - {origin: base, task: thumb_fingertip, origin_kp: 0, task_kp:  3, scale: 1.064}
+    - {origin: base, task: thumb_tip_head,  origin_kp: 0, task_kp:  4, scale: 1.304}
+    # index
+    - {origin: base, task: dip,             origin_kp: 0, task_kp:  6, scale: 1.197}
+    - {origin: base, task: fingertip,       origin_kp: 0, task_kp:  7, scale: 1.238}
+    - {origin: base, task: index_tip_head,  origin_kp: 0, task_kp:  8, scale: 1.333}
+    # middle
+    - {origin: base, task: dip_2,           origin_kp: 0, task_kp: 10, scale: 1.111}
+    - {origin: base, task: fingertip_2,     origin_kp: 0, task_kp: 11, scale: 1.148}
+    - {origin: base, task: middle_tip_head, origin_kp: 0, task_kp: 12, scale: 1.273}
+    # ring
+    - {origin: base, task: dip_3,           origin_kp: 0, task_kp: 14, scale: 1.196}
+    - {origin: base, task: fingertip_3,     origin_kp: 0, task_kp: 15, scale: 1.23}
+    - {origin: base, task: ring_tip_head,   origin_kp: 0, task_kp: 16, scale: 1.371}
+
+  mediapipe_rotation:
+    x: -5.0
+    y: -5.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5

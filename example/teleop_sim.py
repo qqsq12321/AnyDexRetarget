@@ -107,14 +107,18 @@ def run_teleop(
     camera_azimuth: float | None = None,
     camera_elevation: float | None = None,
     camera_distance: float | None = None,
+    config_override: dict | None = None,
 ):
     """Run teleoperation with MuJoCo simulation."""
     hand_side = hand_side.lower()
     assert hand_side in {"right", "left"}, "hand_side must be 'right' or 'left'"
 
     config_file = Path(__file__).parent / config_path
-    with open(config_file, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
+    if config_override is None:
+        with open(config_file, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+    else:
+        config = config_override
 
     robot_type = config.get("robot", {}).get("type", "shadow_hand")
     if robot_type not in ROBOT_HAND_CONFIGS:
@@ -229,7 +233,7 @@ def run_teleop(
             )
 
     input_device = device_map[input_device_type]()
-    retargeter = Retargeter.from_yaml(str(config_file), hand_side)
+    retargeter = Retargeter.from_config(config, hand_side)
 
     if input_device_type in ("mediapipe_replay", "video") and enable_recording:
         print("Note: Recording disabled in replay/video mode")

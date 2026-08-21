@@ -1,0 +1,57 @@
+# Inspire Hand - KeyVectorOptimizer (Noitom PNS-G input)
+# Key-vector-based retargeting using palm-to-link vectors
+# Optimizes Huber loss between robot vectors and scaled human vectors
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "inspire_hand"
+  urdf_path: "assets/inspire_hand/inspire_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0             # Huber loss threshold (cm)
+  norm_delta: 0.04             # Velocity regularization weight
+  lp_alpha: 0.4                # Low-pass filter coefficient
+
+  # Key vectors define the mapping from human hand to robot hand
+  # Each vector: {origin: robot_link, task: robot_link, origin_kp: mp_idx, task_kp: mp_idx, scale: factor}
+  # MediaPipe indices: 0=wrist, 1-4=thumb, 5-8=index, 9-12=middle, 13-16=ring, 17-20=pinky
+  key_vectors:
+    # === THUMB (finger 1) ===
+    - {origin: hand_base_link, task: thumb_proximal,     origin_kp: 0, task_kp:  2, scale: 1.028}
+    - {origin: hand_base_link, task: thumb_intermediate, origin_kp: 0, task_kp:  3, scale: 1.287}
+    - {origin: hand_base_link, task: thumb_tip,          origin_kp: 0, task_kp:  4, scale: 1.365}
+
+    # === INDEX (finger 2) ===
+    - {origin: hand_base_link, task: index_proximal,     origin_kp: 0, task_kp:  6, scale: 1.075}
+    - {origin: hand_base_link, task: index_intermediate, origin_kp: 0, task_kp:  7, scale: 1.147}
+    - {origin: hand_base_link, task: index_tip,          origin_kp: 0, task_kp:  8, scale: 1.286}
+
+    # === MIDDLE (finger 3) ===
+    - {origin: hand_base_link, task: middle_proximal,    origin_kp: 0, task_kp: 10, scale: 1.054}
+    - {origin: hand_base_link, task: middle_intermediate,origin_kp: 0, task_kp: 11, scale: 1.102}
+    - {origin: hand_base_link, task: middle_tip,         origin_kp: 0, task_kp: 12, scale: 1.234}
+
+    # === RING (finger 4) ===
+    - {origin: hand_base_link, task: ring_proximal,      origin_kp: 0, task_kp: 14, scale: 1.143}
+    - {origin: hand_base_link, task: ring_intermediate,  origin_kp: 0, task_kp: 15, scale: 1.176}
+    - {origin: hand_base_link, task: ring_tip,           origin_kp: 0, task_kp: 16, scale: 1.282}
+
+    # === PINKY (finger 5) ===
+    - {origin: hand_base_link, task: pinky_proximal,     origin_kp: 0, task_kp: 18, scale: 1.267}
+    - {origin: hand_base_link, task: pinky_intermediate, origin_kp: 0, task_kp: 19, scale: 1.354}
+    - {origin: hand_base_link, task: pinky_tip,          origin_kp: 0, task_kp: 20, scale: 1.468}
+
+  # MediaPipe rotation adjustment (degrees)
+  # Calibrated for Noitom PNS-G glove coordinate system
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: -20.0                   # Slight Z rotation for hand alignment
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

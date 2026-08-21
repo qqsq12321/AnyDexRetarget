@@ -1,0 +1,65 @@
+# Shadow Hand Configuration for Quest 3 (HTS) Input
+# Adaptive blend: TipDirVec when pinching, FullHandVec otherwise
+# Loss: L = Σ (α_i * L_tip_dir_vec_i + (1-α_i) * L_full_hand_i) + norm_delta * ||Δq||²
+# Uses Huber loss + analytical gradients + NLopt SLSQP
+
+optimizer:
+  type: "AdaptiveOptimizerAnalytical"
+
+# Robot configuration for Shadow Hand (rh_ prefix)
+robot:
+  type: "shadow_hand"
+
+retarget:
+  # Huber loss thresholds
+  huber_delta: 2.0             # Position Huber threshold (cm)
+  huber_delta_dir: 0.5         # Direction Huber threshold
+
+  # Regularization
+  norm_delta: 0.04             # Velocity regularization weight
+
+  # TipDirVec parameters
+  w_pos: 5.0                   # Tip position weight (wrist → tip vectors)
+  w_dir: 1.0                   # Tip direction weight (link4 → tip vectors)
+  project_tip_dir: false       # Whether to project tip direction
+
+  # FullHandVec parameters
+  w_full_hand: 1.0             # Full hand vec weight
+
+  # Per-finger segment scaling [PIP, DIP, TIP]
+  pinch_scaling: 1.0
+  alpha: 1.0
+  segment_scaling:
+    thumb: [1.0, 1.0, 1.0]
+    index: [1.0, 1.03, 1.05]
+    middle: [1.0, 1.0, 1.0]
+    ring: [1.0, 1.0, 1.0]
+    pinky: [1.05, 1.15, 1.15]
+
+  # Pinch distance thresholds (cm) for each finger
+  pinch_thresholds:
+    index: {d1: 2.0, d2: 4.0}
+    middle: {d1: 2.0, d2: 4.0}
+    ring: {d1: 2.0, d2: 4.0}
+    pinky: {d1: 2.0, d2: 4.0}
+
+  # MediaPipe rotation adjustment (degrees)
+  # Quest 3 coordinate system: smaller rotation needed
+  mediapipe_rotation:
+    x: -7.0
+    y: 0.0
+    z: -90.0
+
+  # Clamp joint lower bounds to prevent hyperextension
+  # Pattern matches joint names containing the key, sets minimum lower bound
+  clamp_joint_lower:
+    "J3": 0.0                   # Prevent MCP hyperextension for FF/MF/RF/LF
+
+  # Low-pass filter coefficient (0~1, smaller=smoother)
+  lp_alpha: 0.4
+
+render:
+  camera:
+    azimuth: 180
+    elevation: 0.0
+    distance: 1.0

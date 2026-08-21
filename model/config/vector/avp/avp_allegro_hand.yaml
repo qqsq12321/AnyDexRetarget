@@ -1,0 +1,43 @@
+# Allegro Hand - KeyVectorOptimizer (VisionPro AVP input)
+# 4 fingers: thumb, index, middle, ring (no pinky)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "allegro_hand"
+  urdf_path: "assets/allegro_hand/allegro_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb (link_12~15)
+    - {origin: base_link, task: link_13.0,     origin_kp: 0, task_kp:  2, scale: 1.22}
+    - {origin: base_link, task: link_14.0,     origin_kp: 0, task_kp:  3, scale: 0.998}
+    - {origin: base_link, task: link_15.0_tip, origin_kp: 0, task_kp:  4, scale: 1.478}
+    # index (link_0~3)
+    - {origin: base_link, task: link_1.0,      origin_kp: 0, task_kp:  6, scale: 0.361}
+    - {origin: base_link, task: link_2.0,      origin_kp: 0, task_kp:  7, scale: 0.55}
+    - {origin: base_link, task: link_3.0_tip,  origin_kp: 0, task_kp:  8, scale: 0.891}
+    # middle (link_4~7)
+    - {origin: base_link, task: link_5.0,      origin_kp: 0, task_kp: 10, scale: 0.13}
+    - {origin: base_link, task: link_6.0,      origin_kp: 0, task_kp: 11, scale: 0.45}
+    - {origin: base_link, task: link_7.0_tip,  origin_kp: 0, task_kp: 12, scale: 0.824}
+    # ring (link_8~11)
+    - {origin: base_link, task: link_9.0,      origin_kp: 0, task_kp: 14, scale: 0.383}
+    - {origin: base_link, task: link_10.0,     origin_kp: 0, task_kp: 15, scale: 0.569}
+    - {origin: base_link, task: link_11.0_tip, origin_kp: 0, task_kp: 16, scale: 0.919}
+
+  mediapipe_rotation:
+    x: -5.0
+    y: -5.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5

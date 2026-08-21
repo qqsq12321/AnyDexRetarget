@@ -1,0 +1,46 @@
+# SVH (Schunk) Hand Configuration for Retargeting
+# 5 fingers, 20 DOF (9 independent + 11 mimic)
+
+optimizer:
+  type: "AdaptiveOptimizerAnalytical"
+
+robot:
+  type: "svh_hand"
+  urdf_path: "assets/schunk_hand/schunk_svh_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0
+  huber_delta_dir: 0.5
+  norm_delta: 0.04
+  w_pos: 5.0
+  w_dir: 1.0
+  project_tip_dir: false
+  w_full_hand: 1.0
+
+  pinch_scaling: 1.0
+  alpha: 1.0
+  segment_scaling:
+    thumb: [1.12, 1.12, 1.12]
+    index: [1.12, 1.12, 1.12]
+    middle: [1.12, 1.12, 1.12]
+    ring: [1.12, 1.12, 1.12]
+    pinky: [1.12, 1.12, 1.12]
+
+  pinch_thresholds:
+    index: {d1: 2.0, d2: 8.0}
+    middle: {d1: 2.0, d2: 8.0}
+    ring: {d1: 2.0, d2: 8.0}
+    pinky: {d1: 2.0, d2: 8.0}
+
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+
+  lp_alpha: 0.4
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

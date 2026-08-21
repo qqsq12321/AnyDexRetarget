@@ -1,0 +1,54 @@
+# AdaptiveOptimizerAnalytical Configuration for Noitom PNS-G data
+# Adaptive blend: TipDirVec when pinching, FullHandVec otherwise
+# Loss: L = Σ (α_i * L_tip_dir_vec_i + (1-α_i) * L_full_hand_i) + norm_delta * ||Δq||²
+# Uses Huber loss + analytical gradients + NLopt SLSQP
+
+optimizer:
+  type: "AdaptiveOptimizerAnalytical"
+
+robot:
+  type: "sharpa_hand"
+
+retarget:
+  # Huber loss thresholds
+  huber_delta: 2.0             # Position Huber threshold (cm)
+  huber_delta_dir: 0.5         # Direction Huber threshold
+
+  # Regularization
+  norm_delta: 0.04             # Velocity regularization weight
+
+  # TipDirVec parameters
+  w_pos: 5.0                   # Tip position weight (wrist → tip vectors)
+  w_dir: 1.0                  # Tip direction weight (link4 → tip vectors)
+  project_tip_dir: false       # Whether to project tip direction
+
+  # FullHandVec parameters
+  w_full_hand: 1.0             # Full hand vec weight
+  pinch_scaling: 1.0
+  alpha: 1.0
+  segment_scaling:
+    thumb: [1.2, 1.2, 1.15]
+    index: [1.1, 1.15, 1.15]
+    middle: [1.1, 1.1, 1.05]
+    ring: [1.1, 1.1, 1.1]
+    pinky: [1.2, 1.25, 1.2]
+
+  # Pinch distance thresholds (cm) for each finger
+  # d < d1: TipDirVec mode (α=1), d > d2: FullHandVec mode (α=0)
+  pinch_thresholds:
+    index: {d1: 2.0, d2: 4.0}
+    middle: {d1: 2.0, d2: 4.0}
+    ring: {d1: 2.0, d2: 4.0}
+    pinky: {d1: 2.0, d2: 4.0}
+
+  # MediaPipe rotation adjustment (degrees)
+  mediapipe_rotation:
+    x: -7.0
+    y: -7.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5

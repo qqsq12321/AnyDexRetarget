@@ -1,0 +1,48 @@
+# Unitree Dex5 Hand Configuration for Retargeting
+#
+# Note: this enables retargeting with the external URDF assets.
+# The repository does not currently include a MuJoCo XML model for Dex5.
+
+optimizer:
+  type: "AdaptiveOptimizerAnalytical"
+
+robot:
+  type: "unitree_dex5_hand"
+
+retarget:
+  huber_delta: 2.0
+  huber_delta_dir: 0.5
+  norm_delta: 0.04
+  w_pos: 5.0
+  w_dir: 1.0
+  project_tip_dir: false
+  w_full_hand: 1.0
+
+  pinch_scaling: 1.0
+  alpha: 1.0
+  segment_scaling:
+    thumb: [0.179, 0.336, 0.522]
+    index: [0.591, 0.765, 0.797]
+    middle: [0.62, 0.768, 0.794]
+    ring: [0.673, 0.812, 0.833]
+    pinky: [0.812, 0.965, 0.973]
+
+  pinch_thresholds:
+    index: {d1: 2.0, d2: 4.0}
+    middle: {d1: 2.0, d2: 4.0}
+    ring: {d1: 2.0, d2: 4.0}
+    pinky: {d1: 2.0, d2: 4.0}
+
+  mediapipe_rotation:
+    x: -90.0
+    y: -90.0
+    z: 0.0
+
+  lp_alpha: 0.4
+
+render:
+  camera:
+    azimuth: 90
+    elevation: -20
+    distance: 0.5
+    lookat: [0, 0, 0.05]

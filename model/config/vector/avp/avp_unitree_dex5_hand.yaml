@@ -1,0 +1,45 @@
+# Unitree Dex5 - KeyVectorOptimizer (VisionPro AVP input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "unitree_dex5_hand"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: base_link00, task: Link_12R,  origin_kp: 0, task_kp:  2, scale: 0.179}
+    - {origin: base_link00, task: Link_13R,  origin_kp: 0, task_kp:  3, scale: 0.336}
+    - {origin: base_link00, task: Link_14R,  origin_kp: 0, task_kp:  4, scale: 0.522}
+    # index
+    - {origin: base_link00, task: Link_22R,  origin_kp: 0, task_kp:  6, scale: 0.591}
+    - {origin: base_link00, task: Link_23R,  origin_kp: 0, task_kp:  7, scale: 0.765}
+    - {origin: base_link00, task: Link_24R,  origin_kp: 0, task_kp:  8, scale: 0.797}
+    # middle
+    - {origin: base_link00, task: Link_32R,  origin_kp: 0, task_kp: 10, scale: 0.62}
+    - {origin: base_link00, task: Link_33R,  origin_kp: 0, task_kp: 11, scale: 0.768}
+    - {origin: base_link00, task: Link_34R,  origin_kp: 0, task_kp: 12, scale: 0.794}
+    # ring
+    - {origin: base_link00, task: Link_42R,  origin_kp: 0, task_kp: 14, scale: 0.673}
+    - {origin: base_link00, task: Link_43R,  origin_kp: 0, task_kp: 15, scale: 0.812}
+    - {origin: base_link00, task: Link_44R,  origin_kp: 0, task_kp: 16, scale: 0.833}
+    # pinky
+    - {origin: base_link00, task: Link_52R,  origin_kp: 0, task_kp: 18, scale: 0.812}
+    - {origin: base_link00, task: Link_53R,  origin_kp: 0, task_kp: 19, scale: 0.965}
+    - {origin: base_link00, task: Link_54R,  origin_kp: 0, task_kp: 20, scale: 0.973}
+
+  mediapipe_rotation:
+    x: -5.0
+    y: -5.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5

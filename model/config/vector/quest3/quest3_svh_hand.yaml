@@ -1,0 +1,46 @@
+# SVH Hand - KeyVectorOptimizer (Quest 3 HTS input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "svh_hand"
+  urdf_path: "assets/schunk_hand/schunk_svh_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  key_vectors:
+    # thumb
+    - {origin: right_hand_base_link, task: right_hand_a,  origin_kp: 0, task_kp:  2, scale: 0.666}
+    - {origin: right_hand_base_link, task: right_hand_b,  origin_kp: 0, task_kp:  3, scale: 0.875}
+    - {origin: right_hand_base_link, task: thtip,         origin_kp: 0, task_kp:  4, scale: 1.109}
+    # index
+    - {origin: right_hand_base_link, task: right_hand_p,  origin_kp: 0, task_kp:  6, scale: 1.206}
+    - {origin: right_hand_base_link, task: right_hand_t,  origin_kp: 0, task_kp:  7, scale: 1.199}
+    - {origin: right_hand_base_link, task: fftip,         origin_kp: 0, task_kp:  8, scale: 1.139}
+    # middle
+    - {origin: right_hand_base_link, task: right_hand_o,  origin_kp: 0, task_kp: 10, scale: 1.203}
+    - {origin: right_hand_base_link, task: right_hand_s,  origin_kp: 0, task_kp: 11, scale: 1.203}
+    - {origin: right_hand_base_link, task: mftip,         origin_kp: 0, task_kp: 12, scale: 1.14}
+    # ring
+    - {origin: right_hand_base_link, task: right_hand_n,  origin_kp: 0, task_kp: 14, scale: 1.232}
+    - {origin: right_hand_base_link, task: right_hand_r,  origin_kp: 0, task_kp: 15, scale: 1.237}
+    - {origin: right_hand_base_link, task: rftip,         origin_kp: 0, task_kp: 16, scale: 1.17}
+    # pinky
+    - {origin: right_hand_base_link, task: right_hand_m,  origin_kp: 0, task_kp: 18, scale: 1.276}
+    - {origin: right_hand_base_link, task: right_hand_q,  origin_kp: 0, task_kp: 19, scale: 1.268}
+    - {origin: right_hand_base_link, task: lftip,         origin_kp: 0, task_kp: 20, scale: 1.202}
+
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

@@ -1,0 +1,68 @@
+# Linker L20 - KeyVectorOptimizer (Pico 4 input)
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "linker_l20"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+  segment_scaling:
+    thumb: [1.727, 1.53, 1.417]
+    index: [1.617, 1.624, 1.579]
+    middle: [1.58, 1.548, 1.47]
+    ring: [1.613, 1.613, 1.55]
+    pinky: [1.806, 1.821, 1.74]
+
+  key_vectors:
+    # thumb
+  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2, scale: 
+      1.524}
+  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 3, scale: 
+      1.383}
+  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 4, 
+      task_offset: [-0.0110, 0.0, 0.0277], scale: 1.265}
+    # index
+  - {origin: hand_base_link, task: index_middle, origin_kp: 0, task_kp: 6, scale: 
+      1.59}
+  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 7, scale: 
+      1.584}
+  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 8, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.502}
+    # middle
+  - {origin: hand_base_link, task: middle_middle, origin_kp: 0, task_kp: 10, 
+      scale: 1.56}
+  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 11, 
+      scale: 1.526}
+  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 12, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.424}
+    # ring
+  - {origin: hand_base_link, task: ring_middle, origin_kp: 0, task_kp: 14, scale: 
+      1.589}
+  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 15, scale: 
+      1.583}
+  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 16, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.494}
+    # pinky
+  - {origin: hand_base_link, task: pinky_middle, origin_kp: 0, task_kp: 18, 
+      scale: 1.776}
+  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 19, 
+      scale: 1.788}
+  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 20, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.68}
+
+  # apply_mediapipe_transformations() yields mirrored Y axes for the
+  # two hands.  Mirror the fixed palm-frame correction as well so the input
+  # palm normal/width axes remain aligned with the L20 base frame.
+  mediapipe_rotation:
+    right: {x: -10.0, y: 0.0, z: -10.0}
+    left: {x: 10.0, y: 0.0, z: 10.0}
+
+render:
+  camera:
+    azimuth: 180
+    elevation: 0.0
+    distance: 0.7
