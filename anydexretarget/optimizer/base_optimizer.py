@@ -424,6 +424,9 @@ class BaseOptimizer(ABC):
 
         if opt_type == 'AdaptiveOptimizerAnalytical':
             return AdaptiveOptimizerAnalytical(config)
+        elif opt_type == 'AdaptiveOptimizerAnalyticalV2':
+            from .analytical_optimizer_v2 import AdaptiveOptimizerAnalyticalV2
+            return AdaptiveOptimizerAnalyticalV2(config)
         elif opt_type == 'KeyVectorOptimizer':
             from .key_vector_optimizer import KeyVectorOptimizer
             return KeyVectorOptimizer(config)

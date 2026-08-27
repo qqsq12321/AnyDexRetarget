@@ -1,0 +1,79 @@
+# Inspire RH56DFTP-2R / RH56E2 right-hand retargeting v2.
+# The original pico4_inspire_hand.yaml remains unchanged.
+
+optimizer:
+  type: "AdaptiveOptimizerAnalyticalV2"
+
+robot:
+  type: "inspire_hand"
+  urdf_path: "assets/inspire_hand/inspire_hand_right.urdf"
+
+retarget:
+  huber_delta: 2.0
+  huber_delta_dir: 0.5
+  norm_delta: 0.04
+  w_pos: 5.0
+  w_dir: 1.0
+  project_tip_dir: false
+  w_full_hand: 1.0
+
+  pinch_scaling: 1.3224
+  alpha: 1.0
+  segment_scaling:
+    thumb: [1.883, 0.992, 0.992, 1.652]
+    index: [1.615, 0.541, 0.541, 2.136]
+    middle: [1.661, 0.457, 0.457, 1.927]
+    ring: [1.738, 0.505, 0.505, 2.124]
+    pinky: [1.703, 0.735, 0.735, 1.932]
+
+  pinch_thresholds:
+    index: {d1: 2.0, d2: 8.0}
+    middle: {d1: 2.0, d2: 4.0}
+    ring: {d1: 2.0, d2: 4.0}
+    pinky: {d1: 2.0, d2: 4.0}
+
+  # Desired closure distances; joint limits project unreachable fingers to the
+  # closest RH56 pose.
+  contact_v2:
+    weight: 160.0
+    huber_delta: 0.5
+    min_beta: 0.8
+    dominance_margin: 0.15
+    enabled_fingers: [index, middle, ring, pinky]
+    target_distances_cm:
+      index: 0.2
+      middle: 0.2
+      ring: 0.2
+      pinky: 0.2
+
+  # Preserve independent one-finger motion outside a clear two-finger pinch.
+  direct_control_v2:
+    finger_blend: 1.0
+    thumb_blend: 1.0
+    pinch_finger_blend: 0.0
+    pinch_thumb_blend: 0.0
+    finger_curl_open_rad: 0.1
+    finger_curl_closed_rad: 2.8
+    thumb_yaw_open_ratio: -2.05
+    thumb_yaw_opposed_ratio: 0.1
+    thumb_curl_open_rad: 0.13
+    thumb_curl_closed_rad: 1.69
+
+  mediapipe_rotation:
+    x: -7.0
+    y: 0.0
+    z: -20.0
+
+  # About 8/1000 of each joint range bypasses smoothing; smaller changes use EMA.
+  lp_filter_v2:
+    alpha: 1.0
+    bypass_ratio: 0.008
+    passthrough_joints:
+      - thumb_proximal_yaw_joint
+      - thumb_proximal_pitch_joint
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

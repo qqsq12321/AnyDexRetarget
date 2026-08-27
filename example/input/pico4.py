@@ -22,12 +22,14 @@ Usage:
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
 import socket
 import struct
 import threading
 import time
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -56,6 +58,22 @@ DEFAULT_UDP_BROADCAST_PORT = 29888
 _BROADCAST_INTERVAL_S = 5.0
 _HEARTBEAT_TIMEOUT_S = 20.0
 _RELAY_RECONNECT_S = 2.0
+
+
+def _request_quick_ack(conn: socket.socket) -> None:
+    """Avoid Linux delayed ACK batching tracking frames."""
+    quick_ack = getattr(socket, "TCP_QUICKACK", None)
+    if quick_ack is None:
+        return
+    try:
+        conn.setsockopt(socket.IPPROTO_TCP, quick_ack, 1)
+    except OSError:
+        logger.debug("TCP_QUICKACK is unavailable on this connection", exc_info=True)
+
+
+def _configure_low_latency_tcp(conn: socket.socket) -> None:
+    conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    _request_quick_ack(conn)
 
 # 26 SDK joints → 21 MediaPipe joints
 # Removes: Palm(0), Index_metacarpal(6), Middle_metacarpal(11),
@@ -225,8 +243,50 @@ def _build_broadcast_packet(ip: str) -> bytes:
     return bytes(pkt)
 
 
+_SIOCGIFFLAGS = 0x8913
+_SIOCGIFADDR = 0x8915
+_SIOCGIFBRDADDR = 0x8919
+_IFF_UP = 0x1
+_IFF_BROADCAST = 0x2
+_IFF_LOOPBACK = 0x8
+
+
+def _interface_request(sock: socket.socket, name: str, request: int) -> bytes:
+    ifreq = struct.pack('256s', name.encode('utf-8')[:15])
+    return fcntl.ioctl(sock.fileno(), request, ifreq)
+
+
+def _get_local_ipv4_interfaces() -> list[tuple[str, str, str]]:
+    """Return active broadcast interfaces as (name, IP, broadcast IP)."""
+    interfaces: list[tuple[str, str, str]] = []
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            for _, name in socket.if_nameindex():
+                if not (Path('/sys/class/net') / name / 'device').exists():
+                    continue
+                try:
+                    flags_data = _interface_request(sock, name, _SIOCGIFFLAGS)
+                    flags = struct.unpack_from('H', flags_data, 16)[0]
+                    if not flags & _IFF_UP or flags & _IFF_LOOPBACK:
+                        continue
+                    if not flags & _IFF_BROADCAST:
+                        continue
+
+                    addr_data = _interface_request(sock, name, _SIOCGIFADDR)
+                    broadcast_data = _interface_request(sock, name, _SIOCGIFBRDADDR)
+                    ip = socket.inet_ntoa(addr_data[20:24])
+                    broadcast_ip = socket.inet_ntoa(broadcast_data[20:24])
+                except OSError:
+                    continue
+                if not ip.startswith('127.'):
+                    interfaces.append((name, ip, broadcast_ip))
+    except OSError:
+        logger.debug("Unable to enumerate local IPv4 interfaces", exc_info=True)
+    return interfaces
+
+
 def _get_local_ips() -> list[str]:
-    ips = []
+    ips = [ip for _, ip, _ in _get_local_ipv4_interfaces()]
     try:
         for info in socket.getaddrinfo(socket.gethostname(), None):
             if info[0] == socket.AF_INET:
@@ -244,6 +304,22 @@ def _get_local_ips() -> list[str]:
         except Exception:
             pass
     return list(dict.fromkeys(ips))
+
+
+def _get_broadcast_targets() -> list[tuple[str, str]]:
+    targets = [
+        (ip, broadcast_ip)
+        for _, ip, broadcast_ip in _get_local_ipv4_interfaces()
+    ]
+    if targets:
+        return list(dict.fromkeys(targets))
+
+    fallback = []
+    for ip in _get_local_ips():
+        parts = ip.split('.')
+        if len(parts) == 4:
+            fallback.append((ip, '.'.join(parts[:3]) + '.255'))
+    return fallback
 
 
 # ── Main class ────────────────────────────────────────────────────────────────
@@ -311,6 +387,7 @@ class Pico4:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(5.0)
                 sock.connect((self._relay_host, self._relay_port))
+                _configure_low_latency_tcp(sock)
                 sock.settimeout(1.0)
                 logger.info('Pico4 connected to relay %s:%d', self._relay_host, self._relay_port)
                 self._relay_loop(sock)
@@ -335,6 +412,7 @@ class Pico4:
                 break
             if not data:
                 break
+            _request_quick_ack(sock)
             parser.feed(data)
             while True:
                 payload = parser.try_parse()
@@ -385,6 +463,7 @@ class Pico4:
 
     def _direct_client_loop(self, conn: socket.socket) -> None:
         parser = _DirectFrameParser()
+        _configure_low_latency_tcp(conn)
         conn.settimeout(1.0)
         last_hb = time.monotonic()
         try:
@@ -399,6 +478,7 @@ class Pico4:
                     break
                 if not data:
                     break
+                _request_quick_ack(conn)
                 parser.feed(data)
                 while True:
                     frame = parser.try_parse()
@@ -425,15 +505,12 @@ class Pico4:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         try:
             while not self._stop.is_set():
-                for ip in _get_local_ips():
-                    parts = ip.split('.')
-                    if len(parts) == 4:
-                        bcast = '.'.join(parts[:3]) + '.255'
-                        pkt = _build_broadcast_packet(ip)
-                        try:
-                            sock.sendto(pkt, (bcast, self._broadcast_port))
-                        except OSError:
-                            pass
+                for ip, broadcast_ip in _get_broadcast_targets():
+                    pkt = _build_broadcast_packet(ip)
+                    try:
+                        sock.sendto(pkt, (broadcast_ip, self._broadcast_port))
+                    except OSError:
+                        pass
                 self._stop.wait(_BROADCAST_INTERVAL_S)
         finally:
             sock.close()

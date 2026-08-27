@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 
 from .base_optimizer import BaseOptimizer
-from .utils import M_TO_CM, TimingStats, huber_loss_np, huber_loss_grad_np
+from .utils import M_TO_CM, TimingStats, huber_loss_grad_np, huber_loss_np
 
 
 class AdaptiveOptimizerAnalytical(BaseOptimizer):
@@ -345,6 +345,12 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
         loss_per_finger = alphas * loss_tip_dir_vec + (1.0 - alphas) * loss_full
         total_loss = np.sum(loss_per_finger)
 
+        extra_loss, extra_grad = self._extra_loss_and_grad_v2(
+            qpos, positions, Js, alphas
+        )
+        total_loss += extra_loss
+        total_grad += extra_grad
+
         # === Regularization ===
         if last_qpos is not None:
             total_loss += self.norm_delta * np.sum((qpos - last_qpos) ** 2)
@@ -354,6 +360,16 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
             self._timing.gradient_ms += (time.perf_counter() - t_grad_start) * 1000
 
         return total_loss, total_grad
+
+    def _extra_loss_and_grad_v2(
+        self,
+        qpos: np.ndarray,
+        positions: np.ndarray,
+        jacobians: np.ndarray,
+        alphas: np.ndarray,
+    ) -> tuple[float, np.ndarray]:
+        """V2 extension hook that leaves the v1 objective unchanged."""
+        return 0.0, np.zeros(self.num_joints, dtype=np.float64)
 
     def get_timing_stats(self) -> TimingStats:
         """Get timing statistics."""

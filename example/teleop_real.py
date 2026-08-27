@@ -5,6 +5,7 @@ send them to real hardware via:
 - wujihandpy (Wuji Hand)
 - TCP socket bridge (Shadow Hand)
 - direct serial protocol (Inspire RH56DFX)
+- SocketCAN (LinkerHand L20)
 - Gaia HandSDK (GaiaHand20 / Gaia20)
 """
 
@@ -21,8 +22,97 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from output.real import (
+    GaiaHand20Output,
+    InspireSerialOutput,
+    LinkerL20CanOutput,
+    LinkerL20SerialOutput,
+    LinkerL20V10SerialOutput,
+    ShadowTCPOutput,
+    WujiOutput,
+)
+
 from anydexretarget import Retargeter
-from output.real import GaiaHand20Output, InspireSerialOutput, ShadowTCPOutput, WujiOutput
+
+
+def _create_linker_l20_output(
+    *,
+    transport: str,
+    hand_side: str,
+    port: str,
+    baudrate: int,
+    slave_id: int,
+    can_channel: str,
+    can_bitrate: int,
+    can_id: int | None,
+    command_hz: float,
+    rs485_profile: str = "standard",
+    max_register_step: int = 0,
+    joint_command_mapping: dict | None = None,
+):
+    if transport == "can":
+        kwargs = {}
+        if joint_command_mapping is not None:
+            kwargs["joint_command_mapping"] = joint_command_mapping
+        return LinkerL20CanOutput(
+            channel=can_channel,
+            hand_side=hand_side,
+            bitrate=can_bitrate,
+            can_id=can_id,
+            command_hz=command_hz,
+            **kwargs,
+        )
+    if transport == "rs485":
+        if rs485_profile == "v10":
+            return LinkerL20V10SerialOutput(
+                port_name=port,
+                hand_side=hand_side,
+                baudrate=baudrate,
+                slave_id=slave_id,
+                command_hz=command_hz,
+                max_register_step=max_register_step,
+            )
+        if rs485_profile != "standard":
+            raise ValueError(f"Unknown Linker L20 RS485 profile: {rs485_profile}")
+        return LinkerL20SerialOutput(
+            port_name=port,
+            hand_side=hand_side,
+            baudrate=baudrate,
+            slave_id=slave_id,
+            command_hz=command_hz,
+            max_register_step=max_register_step,
+            joint_command_mapping=joint_command_mapping,
+        )
+    raise ValueError(f"Unknown Linker L20 transport: {transport}")
+
+
+def _resolve_default_config_path(
+    *,
+    robot: str,
+    optimizer: str,
+    input_device_type: str,
+    retarget_version: str,
+) -> str:
+    robot_name_map = {
+        "wuji": "wuji_hand",
+        "shadow": "shadow_hand",
+        "inspire": "inspire_hand",
+        "linker_l20": "linker_l20",
+        "gaia": "gaia_hand20",
+    }
+    input_to_dir = {
+        "quest3": "quest3",
+        "visionpro": "avp",
+        "noitom": "noitom",
+        "pico4": "pico4",
+    }
+    config_dir = input_to_dir.get(input_device_type, "mediapipe")
+    robot_file = robot_name_map.get(robot, robot)
+    version_suffix = "_v2" if retarget_version == "v2" else ""
+    return (
+        f"config/{optimizer}/{config_dir}/"
+        f"{config_dir}_{robot_file}{version_suffix}.yaml"
+    )
 
 
 # -------------------- Teleoperation --------------------
@@ -56,6 +146,16 @@ def run_teleop(
     inspire_port: str = "/dev/ttyUSB0",
     inspire_baudrate: int = 115200,
     inspire_hand_id: int = 1,
+    linker_l20_port: str = "/dev/ttyUSB0",
+    linker_l20_baudrate: int = 115200,
+    linker_l20_slave_id: int = 1,
+    linker_l20_transport: str = "can",
+    linker_l20_can_channel: str = "can0",
+    linker_l20_can_bitrate: int = 1_000_000,
+    linker_l20_can_id: int | None = None,
+    linker_l20_command_hz: float = 80.0,
+    linker_l20_rs485_profile: str = "standard",
+    linker_l20_max_register_step: int = 0,
     gaia_port: str = "/dev/ttyACM0",
     gaia_baudrate: int = 921600,
     gaia_use_slcan: bool = True,
@@ -137,6 +237,8 @@ def run_teleop(
 
     # Get joint names from retargeter for name-aware hardware mappings.
     joint_names = retargeter.optimizer.robot.dof_joint_names
+    hardware_config = retargeter.config.get("hardware", {})
+    joint_command_mapping = hardware_config.get("joint_command_mapping")
 
     # Initialize hardware only after input/config validation. This avoids
     # leaving an enabled hand behind when an input dependency or YAML is bad.
@@ -149,6 +251,21 @@ def run_teleop(
             port_name=inspire_port,
             baudrate=inspire_baudrate,
             hand_id=inspire_hand_id,
+        )
+    elif robot_type == "linker_l20":
+        output = _create_linker_l20_output(
+            transport=linker_l20_transport,
+            hand_side=hand_side,
+            port=linker_l20_port,
+            baudrate=linker_l20_baudrate,
+            slave_id=linker_l20_slave_id,
+            can_channel=linker_l20_can_channel,
+            can_bitrate=linker_l20_can_bitrate,
+            can_id=linker_l20_can_id,
+            command_hz=linker_l20_command_hz,
+            rs485_profile=linker_l20_rs485_profile,
+            max_register_step=linker_l20_max_register_step,
+            joint_command_mapping=joint_command_mapping,
         )
     elif robot_type == "gaia":
         output = GaiaHand20Output(
@@ -235,6 +352,27 @@ def run_teleop(
             print(f"  Shadow bridge: {docker_ip}:{docker_port}")
         elif robot_type == "inspire":
             print(f"  Inspire serial: {inspire_port} @ {inspire_baudrate} (id={inspire_hand_id})")
+        elif robot_type == "linker_l20":
+            if linker_l20_transport == "can":
+                default_can_id = 0x28 if hand_side == "right" else 0x27
+                selected_can_id = (
+                    default_can_id
+                    if linker_l20_can_id is None
+                    else linker_l20_can_id
+                )
+                print(
+                    f"  Linker L20 CAN: {linker_l20_can_channel} "
+                    f"@ {linker_l20_can_bitrate} bit/s "
+                    f"(id=0x{selected_can_id:02X}, "
+                    f"command_hz={linker_l20_command_hz:g})"
+                )
+            else:
+                print(
+                    f"  Linker L20 Modbus RTU ({linker_l20_rs485_profile}): "
+                    f"{linker_l20_port} "
+                    f"@ {linker_l20_baudrate} (slave={linker_l20_slave_id}, "
+                    f"command_hz={linker_l20_command_hz:g})"
+                )
         elif robot_type == "gaia":
             print(
                 f"  Gaia HandSDK: {gaia_port} @ {gaia_baudrate} "
@@ -315,6 +453,9 @@ Examples:
   # Pico 4 direct mode with PC broadcast discovery
   python teleop_real.py --robot inspire --input pico4 --hand right --pico4-mode direct --inspire-port /dev/ttyUSB0
 
+  # LinkerHand L20 over SocketCAN with Pico 4 retargeting v2
+  python teleop_real.py --robot linker_l20 --input pico4 --hand right --retarget-version v2 --linker-l20-can-channel can0
+
   # GaiaHand20 through HandSDK using the local Pico relay daemon
   python teleop_real.py --robot gaia --input pico4 --hand right --pico4-mode relay --gaia-port /dev/ttyACM0
 
@@ -337,8 +478,11 @@ Examples:
     parser.add_argument("--optimizer", type=str, default="adaptive",
                         choices=["adaptive", "vector"],
                         help="Optimizer type: adaptive (default) or vector (KeyVectorOptimizer)")
+    parser.add_argument("--retarget-version", type=str, default="v1",
+                        choices=["v1", "v2"],
+                        help="Retargeting config version when --config is omitted (default: v1)")
     parser.add_argument("--robot", type=str, default="wuji",
-                        choices=["wuji", "shadow", "inspire", "gaia"],
+                        choices=["wuji", "shadow", "inspire", "linker_l20", "gaia"],
                         help="Robot hand type (default: wuji)")
     parser.add_argument("--hand", type=str, default="right", choices=["left", "right"],
                         help="Hand side (default: right)")
@@ -405,6 +549,28 @@ Examples:
                         help="Inspire serial baudrate (default: 115200, for --robot inspire)")
     parser.add_argument("--inspire-hand-id", type=int, default=1,
                         help="Inspire hand ID in serial protocol (default: 1, for --robot inspire)")
+    parser.add_argument("--linker-l20-port", type=str, default="/dev/ttyUSB0",
+                        help="Linker L20 RS485 serial port (default: /dev/ttyUSB0)")
+    parser.add_argument("--linker-l20-baudrate", type=int, default=115200,
+                        help="Linker L20 Modbus baudrate (default: 115200)")
+    parser.add_argument("--linker-l20-slave-id", type=int, default=1,
+                        help="Linker L20 Modbus slave ID (default: 1)")
+    parser.add_argument("--linker-l20-transport", type=str, default="can",
+                        choices=["can", "rs485"],
+                        help="Linker L20 hardware transport (default: can)")
+    parser.add_argument("--linker-l20-can-channel", type=str, default="can0",
+                        help="Linker L20 SocketCAN channel (default: can0)")
+    parser.add_argument("--linker-l20-can-bitrate", type=int, default=1000000,
+                        help="Linker L20 CAN bitrate (default: 1000000)")
+    parser.add_argument("--linker-l20-can-id", type=lambda value: int(value, 0), default=None,
+                        help="Override Linker L20 CAN ID, e.g. 0x28 (default: by hand side)")
+    parser.add_argument("--linker-l20-command-hz", type=float, default=80.0,
+                        help="Maximum Linker L20 command rate (default: 80 Hz)")
+    parser.add_argument("--linker-l20-rs485-profile", type=str, default="standard",
+                        choices=["standard", "v10"],
+                        help="Linker L20 RS485 register profile (default: standard)")
+    parser.add_argument("--linker-l20-max-register-step", type=int, default=0,
+                        help="Maximum per-command RS485 register change; 0 disables limiting")
 
     # GaiaHand20 / HandSDK options
     parser.add_argument("--gaia-port", type=str, default="/dev/ttyACM0",
@@ -459,21 +625,12 @@ Examples:
 
     config_path = args.config
     if config_path is None:
-        robot_name_map = {
-            "wuji": "wuji_hand",
-            "shadow": "shadow_hand",
-            "inspire": "inspire_hand",
-            "gaia": "gaia_hand20",
-        }
-        input_to_dir = {
-            "quest3": "quest3",
-            "visionpro": "avp",
-            "noitom": "noitom",
-            "pico4": "pico4",
-        }
-        config_dir = input_to_dir.get(input_device_type, "mediapipe")
-        robot_file = robot_name_map.get(args.robot, args.robot)
-        config_path = f"config/{args.optimizer}/{config_dir}/{config_dir}_{robot_file}.yaml"
+        config_path = _resolve_default_config_path(
+            robot=args.robot,
+            optimizer=args.optimizer,
+            input_device_type=input_device_type,
+            retarget_version=args.retarget_version,
+        )
 
     log = run_teleop(
         robot_type=args.robot,
@@ -504,6 +661,16 @@ Examples:
         inspire_port=args.inspire_port,
         inspire_baudrate=args.inspire_baudrate,
         inspire_hand_id=args.inspire_hand_id,
+        linker_l20_port=args.linker_l20_port,
+        linker_l20_baudrate=args.linker_l20_baudrate,
+        linker_l20_slave_id=args.linker_l20_slave_id,
+        linker_l20_transport=args.linker_l20_transport,
+        linker_l20_can_channel=args.linker_l20_can_channel,
+        linker_l20_can_bitrate=args.linker_l20_can_bitrate,
+        linker_l20_can_id=args.linker_l20_can_id,
+        linker_l20_command_hz=args.linker_l20_command_hz,
+        linker_l20_rs485_profile=args.linker_l20_rs485_profile,
+        linker_l20_max_register_step=args.linker_l20_max_register_step,
         gaia_port=args.gaia_port,
         gaia_baudrate=args.gaia_baudrate,
         gaia_use_slcan=args.gaia_use_slcan,

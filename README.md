@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-High-precision hand pose retargeting system. Supports two optimizers, multiple dexterous hands, and multiple hand-tracking input sources for simulation and reality.
+High-precision hand pose retargeting system. Supports two optimizers, multiple dexterous hands, and multiple hand-tracking input sources for simulation and real-hardware teleoperation.
 
 ## Demo
 
@@ -34,7 +34,7 @@ https://github.com/user-attachments/assets/e3a2432a-129f-4b76-98c7-a4834b7240ba
 - **Two Optimizers**: `adaptive` (pinch-aware, default) and `vector` (key-vector matching)
 - **High-Precision Pinch**: Adaptive optimization for accurate finger-to-thumb contact
 - **Real-time Performance**: Analytical gradients + NLopt SLSQP (~2ms per frame)
-- **Multiple Input Sources**: Apple Vision Pro, Meta Quest 3, Noitom PNS-G gloves, laptop camera (MediaPipe), recorded data replay
+- **Multiple Input Sources**: Apple Vision Pro, Meta Quest 3, Pico 4, Noitom PNS-G gloves, RealSense, laptop camera (MediaPipe), and recorded data replay
 
 ## Table of Contents
 
@@ -83,7 +83,7 @@ example/config/
 | **Sharpa Hand** | `sharpa` | `sharpa_hand` | Sharpa Wave Hand, 5 fingers / 22 DOF |
 | **Gaia Hand20** | `gaia` | `gaia_hand20` | Gaia Hand20, 5 fingers |
 
-> **Note on Noitom configs:** Only `shadow_hand`, `wuji_hand`, and `inspire_hand` have been roughly calibrated for Noitom input. If you need to fine-tune the mapping accuracy between your hand and the robot hand, run `debug_skeleton.py` to visualize three skeletons side-by-side: **Blue** = raw input, **Green** = after scaling, **Red** = retargeted FK result. Compare the skeleton sizes and adjust the corresponding YAML config parameters (`scaling`, `segment_scaling`, `key_vectors[].scale`, etc.) accordingly.
+> **Note on Noitom configs:** Only `shadow_hand`, `wuji_hand`, and `inspire_hand` have been roughly calibrated for Noitom input. If you need to fine-tune the mapping accuracy between your hand and the robot hand, run `debug_skeleton.py` to compare the four overlays: **Blue** = raw input, **Yellow** = `pinch_scaling`, **Green** = adaptive `segment_scaling`, and **Red** = retargeted robot FK. Adjust `pinch_scaling`, adaptive `segment_scaling`, or vector `key_vectors[].scale` according to the optimizer being calibrated.
 >
 > ```bash
 > cd example
@@ -118,16 +118,19 @@ example/config/
 │   │   ├── calibrate.py                   # Unified calibration entrypoint
 │   │   ├── calibrate_rotation.py          # mediapipe_rotation calibration
 │   │   ├── calibrate_scaling.py           # segment_scaling calibration
-│   │   └── calibrate_pinch_scaling.py     # pinch_scaling calibration
+│   │   ├── calibrate_pinch_scaling.py     # pinch_scaling calibration
+│   │   └── verify_linker_l20_mapping.py   # Linker L20 actuator/FK regression check
 │   ├── config/
 │   │   ├── adaptive/                      # AdaptiveOptimizerAnalytical configs
 │   │   │   ├── avp/                       # Apple Vision Pro
 │   │   │   ├── quest3/                    # Meta Quest 3
+│   │   │   ├── pico4/                     # Pico 4
 │   │   │   ├── mediapipe/                 # Camera / video / replay
 │   │   │   └── noitom/                    # Noitom PNS-G gloves
 │   │   └── vector/                        # KeyVectorOptimizer configs
 │   │       ├── avp/
 │   │       ├── quest3/
+│   │       ├── pico4/
 │   │       ├── mediapipe/
 │   │       └── noitom/
 │   └── data/                              # Sample recordings
@@ -367,9 +370,16 @@ python test/calibrate.py pinch --input pico4 --hand right --all-robots --write
 
 Adaptive configs expose `pinch_scaling` for the active pinch pair's tip-position target and `alpha` for the maximum pinch blend. With `alpha: 1.0`, a fully detected pinch uses the tip objective without residual full-hand target influence.
 
+`scaling` mode writes different values for the two optimizer types because they scale different geometric quantities:
+
+- Adaptive `segment_scaling` stores four per-finger ratios: wrist-to-MCP, MCP-to-PIP, PIP-to-DIP, and DIP-to-tip.
+- Vector `key_vectors[].scale` stores wrist-anchored cumulative ratios for the target keypoint selected by `task_kp`.
+
+Do not copy one optimizer's generated values into the other optimizer's YAML. Use `--optimizer adaptive`, `--optimizer vector`, or the default `--optimizer both` so the calibration tool writes each representation correctly. Use `--dry-run` to inspect recommendations without modifying files.
+
 #### calibrate_scaling.py
 
-Calibrate `segment_scaling` for any robot hand and input source. Collects data while the user holds their hand flat, then computes the ratio between robot FK and human bone distances.
+Calibrate full-hand scaling for any robot hand and input source. The script writes per-segment ratios to adaptive configs and cumulative wrist-to-joint ratios to vector configs.
 
 ```bash
 cd example
@@ -399,6 +409,15 @@ cd example
 
 python test/visualize_scaling.py --robot leap --video data/right.mp4 --hand right
 python test/visualize_scaling.py --robot allegro --play data/avp1.pkl --hand right
+```
+
+#### Linker L20 regression check
+
+Verify the left/right Pinocchio-to-MuJoCo joint mapping, all 16 independent actuator channels, and forward-kinematics alignment:
+
+```bash
+cd example
+python test/verify_linker_l20_mapping.py
 ```
 
 ## API Reference

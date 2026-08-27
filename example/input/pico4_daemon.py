@@ -28,8 +28,10 @@ from pico4 import (
     _CMD_HEARTBEAT,
     _CMD_SENSOR,
     _DirectFrameParser,
+    _configure_low_latency_tcp,
+    _request_quick_ack,
     _build_broadcast_packet,
-    _get_local_ips,
+    _get_broadcast_targets,
 )
 
 logger = logging.getLogger("pico4_daemon")
@@ -151,6 +153,7 @@ class RelayHub:
             except OSError:
                 break
             logger.info("Relay client connected: %s", addr)
+            _configure_low_latency_tcp(conn)
             with self._lock:
                 self._clients.add(conn)
 
@@ -227,6 +230,7 @@ class Pico4Daemon:
 
     def _handle_direct_client(self, conn: socket.socket) -> None:
         parser = _DirectFrameParser()
+        _configure_low_latency_tcp(conn)
         conn.settimeout(1.0)
         last_heartbeat = time.monotonic()
         try:
@@ -242,6 +246,7 @@ class Pico4Daemon:
                     break
                 if not data:
                     break
+                _request_quick_ack(conn)
                 parser.feed(data)
                 while True:
                     frame = parser.try_parse()
@@ -264,11 +269,7 @@ class Pico4Daemon:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         try:
             while not self._stop.is_set():
-                for ip in _get_local_ips():
-                    parts = ip.split(".")
-                    if len(parts) != 4:
-                        continue
-                    broadcast_ip = ".".join(parts[:3]) + ".255"
+                for ip, broadcast_ip in _get_broadcast_targets():
                     packet = _build_broadcast_packet(ip)
                     try:
                         sock.sendto(packet, (broadcast_ip, self._broadcast_port))

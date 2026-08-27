@@ -13,14 +13,11 @@ Usage:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional, Tuple
-
 import numpy as np
 import yaml
 
-from .optimizer import BaseOptimizer, LPFilter
 from .mediapipe import apply_mediapipe_transformations
+from .optimizer import AdaptiveLPFilterV2, BaseOptimizer, LPFilter
 
 
 def _resolve_hand_side_config(value, hand_side: str):
@@ -41,9 +38,9 @@ def _resolve_hand_side_config(value, hand_side: str):
     default = value.get("default", {})
     side_value = value.get(hand_side, {})
     if not isinstance(default, dict):
-        raise ValueError("Side-aware config field 'default' must be a dictionary")
+        raise TypeError("Side-aware config field 'default' must be a dictionary")
     if not isinstance(side_value, dict):
-        raise ValueError(
+        raise TypeError(
             f"Side-aware config field '{hand_side}' must be a dictionary"
         )
     return {**shared, **default, **side_value}
@@ -88,7 +85,31 @@ class Retargeter:
         # Create low-pass filter
         retarget_config = config.get('retarget', {})
         lp_alpha = retarget_config.get('lp_alpha', 0.2)
-        self.lp_filter = LPFilter(lp_alpha)
+        filter_v2_config = retarget_config.get('lp_filter_v2')
+        self._uses_independent_filter_v2 = filter_v2_config is not None
+        if filter_v2_config is not None:
+            joint_ranges = (
+                self.optimizer.opt_upper_bounds[self.optimizer.independent_indices]
+                - self.optimizer.opt_lower_bounds[self.optimizer.independent_indices]
+            )
+            passthrough_names = set(
+                filter_v2_config.get('passthrough_joints', [])
+            )
+            passthrough_mask = np.array(
+                [
+                    self.optimizer.robot.dof_joint_names[index] in passthrough_names
+                    for index in self.optimizer.independent_indices
+                ],
+                dtype=bool,
+            )
+            self.lp_filter = AdaptiveLPFilterV2(
+                alpha=float(filter_v2_config.get('alpha', lp_alpha)),
+                bypass_ratio=float(filter_v2_config.get('bypass_ratio', 0.008)),
+                joint_ranges=joint_ranges,
+                passthrough_mask=passthrough_mask,
+            )
+        else:
+            self.lp_filter = LPFilter(lp_alpha)
 
         # Optional rotation adjustment applied to the transformed keypoints.
         self.rotation_xyz = _resolve_hand_side_config(
@@ -96,7 +117,7 @@ class Retargeter:
         )
 
     @classmethod
-    def from_yaml(cls, yaml_path: str, hand_side: str = "right") -> "Retargeter":
+    def from_yaml(cls, yaml_path: str, hand_side: str = "right") -> Retargeter:
         """Create retargeter from YAML configuration file.
 
         Args:
@@ -111,7 +132,7 @@ class Retargeter:
         return cls(config, hand_side)
 
     @classmethod
-    def from_config(cls, config: dict, hand_side: str = "right") -> "Retargeter":
+    def from_config(cls, config: dict, hand_side: str = "right") -> Retargeter:
         """Create retargeter from configuration dict.
 
         Args:
@@ -149,7 +170,7 @@ class Retargeter:
 
         # Apply filter
         if apply_filter:
-            qpos = self.lp_filter.next(qpos)
+            qpos = self._apply_filter_v2(qpos)
 
         return qpos
 
@@ -157,7 +178,7 @@ class Retargeter:
         self,
         raw_keypoints: np.ndarray,
         apply_filter: bool = True,
-    ) -> Tuple[np.ndarray, dict]:
+    ) -> tuple[np.ndarray, dict]:
         """Retarget with verbose output for visualization.
 
         Args:
@@ -184,7 +205,7 @@ class Retargeter:
 
         # Apply filter
         if apply_filter:
-            filtered_qpos = self.lp_filter.next(qpos)
+            filtered_qpos = self._apply_filter_v2(qpos)
         else:
             filtered_qpos = qpos
 
@@ -201,6 +222,14 @@ class Retargeter:
             verbose_dict['pinch_alphas'] = self.optimizer._compute_pinch_alpha(mediapipe_kp)
 
         return filtered_qpos, verbose_dict
+
+    def _apply_filter_v2(self, qpos: np.ndarray) -> np.ndarray:
+        """Filter independent joints and reconstruct mimic joints for v2."""
+        if not self._uses_independent_filter_v2:
+            return self.lp_filter.next(qpos)
+        independent = qpos[self.optimizer.independent_indices]
+        filtered = self.lp_filter.next(independent)
+        return self.optimizer.expand_to_full_qpos(filtered).astype(qpos.dtype)
 
     def _apply_rotation(self, keypoints: np.ndarray) -> np.ndarray:
         """Apply rotation adjustment to keypoints.

@@ -34,7 +34,7 @@ https://github.com/user-attachments/assets/e3a2432a-129f-4b76-98c7-a4834b7240ba
 - **两种优化器**：`adaptive`（对指感知，默认）和 `vector`（关键向量匹配）
 - **高精度对指**：自适应优化，精确的拇指-手指接触
 - **实时性能**：解析梯度 + NLopt SLSQP（~2ms/帧）
-- **多输入源**：Apple Vision Pro、Meta Quest 3、Noitom PNS-G 动捕手套、笔记本摄像头（MediaPipe）、录制数据回放
+- **多输入源**：Apple Vision Pro、Meta Quest 3、Pico 4、Noitom PNS-G 动捕手套、RealSense、笔记本摄像头（MediaPipe）和录制数据回放
 
 ## 目录
 
@@ -83,7 +83,7 @@ example/config/
 | **Sharpa Hand** | `sharpa` | `sharpa_hand` | Sharpa Wave 灵巧手，5 指 / 22 DOF |
 | **Gaia Hand20** | `gaia` | `gaia_hand20` | Gaia Hand20，5 指灵巧手 |
 
-> **Noitom 配置说明：** 目前仅对 `shadow_hand`、`wuji_hand`、`inspire_hand` 进行了大致的 Noitom 参数匹配。如需精调人手与灵巧手之间的映射精度，建议运行 `debug_skeleton.py` 可视化三套骨架进行对比：**蓝色** = 原始输入、**绿色** = scaling 后的目标、**红色** = 重定向后的 FK 结果。根据骨架大小差异调整对应 YAML 配置文件中的参数（`scaling`、`segment_scaling`、`key_vectors[].scale` 等）。
+> **Noitom 配置说明：** 目前仅对 `shadow_hand`、`wuji_hand`、`inspire_hand` 进行了大致的 Noitom 参数匹配。如需精调映射精度，建议运行 `debug_skeleton.py` 对比四色叠加：**蓝色** = 原始输入、**黄色** = `pinch_scaling`、**绿色** = adaptive `segment_scaling`、**红色** = 重定向后的机器人 FK。请根据正在标定的优化器调整 `pinch_scaling`、adaptive `segment_scaling` 或 vector `key_vectors[].scale`。
 >
 > ```bash
 > cd example
@@ -113,18 +113,24 @@ example/config/
 │   ├── output/                            # retargeting 之后的输出处理，每个手型单独脚本
 │   │   ├── real/                          # 真机驱动 (drivers_wuji.py, drivers_shadow.py, ...)
 │   │   └── sim/                           # MuJoCo 仿真 qpos 映射 (mujoco_output.py)
-│   ├── test/                              # 调试与可视化工具
-│   │   ├── debug_skeleton.py              # 三骨架对比查看器
-│   │   └── calibrate_scaling.py           # 通用 segment_scaling 标定
+│   ├── test/                              # 调试、可视化与标定工具
+│   │   ├── debug_skeleton.py              # 骨架对比查看器
+│   │   ├── calibrate.py                   # 统一标定入口
+│   │   ├── calibrate_rotation.py          # mediapipe_rotation 标定
+│   │   ├── calibrate_scaling.py           # 全手缩放标定
+│   │   ├── calibrate_pinch_scaling.py     # pinch_scaling 标定
+│   │   └── verify_linker_l20_mapping.py   # Linker L20 执行器/FK 回归检查
 │   ├── config/
 │   │   ├── adaptive/                      # AdaptiveOptimizerAnalytical 配置
 │   │   │   ├── avp/                       # Apple Vision Pro
 │   │   │   ├── quest3/                    # Meta Quest 3
+│   │   │   ├── pico4/                     # Pico 4
 │   │   │   ├── mediapipe/                 # MediaPipe（摄像头/视频/回放）
 │   │   │   └── noitom/                    # Noitom PNS-G 手套
 │   │   └── vector/                        # KeyVectorOptimizer 配置
 │   │       ├── avp/
 │   │       ├── quest3/
+│   │       ├── pico4/
 │   │       ├── mediapipe/
 │   │       └── noitom/
 │   └── data/                              # 示例录制数据
@@ -302,10 +308,11 @@ python -c "import hand; print('Gaia HandSDK OK')"
 
 #### debug_skeleton.py
 
-在 MuJoCo 查看器中对比三套骨架，用于调试重定向问题：
+在 MuJoCo 查看器中对比骨架，用于调试重定向问题：
 
 - **蓝色**：原始 MediaPipe 骨架（坐标变换后，未缩放）
-- **绿色**：缩放后的目标骨架（优化器的匹配目标）
+- **黄色**：由 `pinch_scaling` 统一缩放后的原始骨架
+- **绿色**：由 `segment_scaling` 生成的全手目标骨架
 - **红色**：机器人 FK 骨架（重定向结果）
 
 ```bash
@@ -343,9 +350,42 @@ python test/debug_skeleton.py --robot sharpa --input avp --avp-ip 192.168.5.32 -
 python test/debug_skeleton.py --robot shadow --play path/to/record.pkl
 ```
 
+#### calibrate.py
+
+统一标定入口。第一个参数选择标定类型，`--robot` 选择灵巧手：
+
+```bash
+cd example
+
+# 使用实时设备标定输入旋转
+python test/calibrate.py rotation --robot linker_l20 --input pico4 --hand right
+
+# 使用可信录制文件标定旋转；文件名需包含原始输入源名称
+# 例如 avp、pico4、noitom、quest3 或 mediapipe
+python test/calibrate.py rotation --robot wuji --input data/avp1.pkl --hand right --trust-pkl
+
+# 标定全手缩放参数，并分别写入 adaptive/vector 配置
+python test/calibrate.py scaling --robot linker_l20 --input pico4 --hand right --write
+
+# 根据张手时的食指可达距离标定 pinch_scaling
+python test/calibrate.py pinch --robot linker_l20 --input pico4 --hand right --write
+
+# 一次采集，批量更新该输入源下所有 adaptive 配置
+python test/calibrate.py pinch --input pico4 --hand right --all-robots --write
+```
+
+Adaptive 配置中的 `pinch_scaling` 用于捏合时的指尖位置目标，`alpha` 控制最大捏合混合权重。`alpha: 1.0` 时，完全检测到捏合后只使用指尖目标，不残留全手目标的影响。
+
+`scaling` 模式会为两种优化器写入不同含义的数值：
+
+- Adaptive 的 `segment_scaling`：每根手指四个逐段比例，依次为腕部到 MCP、MCP 到 PIP、PIP 到 DIP、DIP 到指尖。
+- Vector 的 `key_vectors[].scale`：以腕部为原点、由 `task_kp` 指定目标关节的累计距离比例。
+
+不要把一种优化器生成的数值复制到另一种 YAML。使用 `--optimizer adaptive`、`--optimizer vector`，或默认的 `--optimizer both`，让工具按正确语义分别写入。只查看建议值而不改文件时使用 `--dry-run`。
+
 #### calibrate_scaling.py
 
-为任意灵巧手和输入源标定 `segment_scaling`。采集用户伸直手指的数据，计算机器人 FK 距离与人手距离的比值。
+为任意灵巧手和输入源标定全手缩放。脚本向 adaptive 配置写入逐段骨长比例，向 vector 配置写入腕部到关节的累计比例。
 
 ```bash
 cd example
@@ -375,6 +415,15 @@ cd example
 
 python test/visualize_scaling.py --robot leap --video data/right.mp4 --hand right
 python test/visualize_scaling.py --robot allegro --play data/avp1.pkl --hand right
+```
+
+#### Linker L20 回归检查
+
+验证左右手的 Pinocchio 到 MuJoCo 关节映射、16 路独立执行器通道和正向运动学一致性：
+
+```bash
+cd example
+python test/verify_linker_l20_mapping.py
 ```
 
 ## API 参考

@@ -1,0 +1,97 @@
+# LinkerHand L20 Pico 4 retargeting v2.
+# Keeps the original pico4_linker_l20.yaml unchanged for v1 comparison.
+
+optimizer:
+  type: "AdaptiveOptimizerAnalyticalV2"
+
+robot:
+  type: "linker_l20"
+
+# The algorithm is hand-agnostic: each robot supplies monotonic calibration
+# points from model qpos (rad) to its actuator command domain.
+hardware:
+  joint_command_mapping:
+    default:
+      # Only channels with measured model-to-hardware alignment override the
+      # driver's physical-angle map. Other joints retain the legacy mapping.
+      thumb_cmc_roll: {input: [0.139626, 0.729907, 1.44236], output: [255, 128, 0]}
+      thumb_cmc_pitch: {input: [0.05236, 0.449907, 0.88236], output: [255, 128, 0]}
+      thumb_mcp: {input: [0.139626, 0.67736, 1.25], output: [255, 128, 0]}
+
+retarget:
+  huber_delta: 2.0
+  huber_delta_dir: 0.5
+  norm_delta: 0.04
+  w_pos: 5.0
+  w_dir: 1.0
+  project_tip_dir: false
+  w_full_hand: 1.0
+
+  pinch_scaling: 1.5101
+  alpha: 1.0
+  lateral_scaling: 0.7
+  segment_scaling:
+    thumb: [1.269, 2.361, 1.232, 1.033]
+    index: [1.753, 1.178, 1.512, 1.092]
+    middle: [1.847, 0.992, 1.288, 0.924]
+    ring: [1.884, 1.053, 1.54, 1.086]
+    pinky: [1.825, 1.681, 1.894, 1.197]
+
+  pinch_thresholds:
+    index: {d1: 2.0, d2: 4.0}
+    middle: {d1: 2.0, d2: 4.0}
+    ring: {d1: 2.0, d2: 4.0}
+    pinky: {d1: 2.0, d2: 4.0}
+
+  contact_v2:
+    weight: 160.0
+    huber_delta: 0.5
+    min_beta: 0.8
+    dominance_margin: 0.15
+    enabled_fingers: [index, middle, ring, pinky]
+    target_distances_cm:
+      index: 0.2
+      middle: 0.2
+      ring: 0.2
+      pinky: 0.2
+
+  # Overlay human curl intent on both independently actuated L20 flexion axes.
+  # The remaining axes continue to use whole-hand IK when no pinch is active.
+  direct_control_v2:
+    direct_only: false
+    finger_blend: 1.0
+    thumb_blend: 1.0
+    pinch_finger_blend: 0.0
+    pinch_thumb_blend: 0.0
+    finger_curl_open_rad: 0.1
+    finger_curl_closed_rad: 2.8
+    thumb_yaw_open_ratio: -2.05
+    thumb_yaw_opposed_ratio: 0.1
+    thumb_curl_open_rad: 0.13
+    thumb_curl_closed_rad: 1.69
+    joint_names:
+      index: [index_mcp_pitch, index_pip]
+      middle: [middle_mcp_pitch, middle_pip]
+      ring: [ring_mcp_pitch, ring_pip]
+      pinky: [pinky_mcp_pitch, pinky_pip]
+      thumb_yaw: [thumb_cmc_yaw]
+      thumb_pitch: [thumb_cmc_pitch, thumb_mcp]
+
+  mediapipe_rotation:
+    right: {x: -10.0, y: 0.0, z: -10.0}
+    left: {x: 10.0, y: 0.0, z: 10.0}
+
+  lp_filter_v2:
+    alpha: 0.65
+    bypass_ratio: 0.006
+    passthrough_joints:
+      - thumb_cmc_yaw
+      - thumb_cmc_roll
+      - thumb_cmc_pitch
+      - thumb_mcp
+
+render:
+  camera:
+    azimuth: 180
+    elevation: 0.0
+    distance: 0.7
