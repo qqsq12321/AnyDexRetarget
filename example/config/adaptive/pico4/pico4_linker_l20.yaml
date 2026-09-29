@@ -26,8 +26,8 @@ retarget:
     pinky: [1.825, 1.681, 1.894, 1.197]
 
   pinch_thresholds:
-    index: {d1: 2.0, d2: 4.0}
-    middle: {d1: 2.0, d2: 4.0}
+    index: {d1: 1.0, d2: 1.5}
+    middle: {d1: 1.0, d2: 1.5}
     ring: {d1: 2.0, d2: 4.0}
     pinky: {d1: 2.0, d2: 4.0}
 

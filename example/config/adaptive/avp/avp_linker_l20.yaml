@@ -15,10 +15,10 @@ retarget:
   project_tip_dir: false
   w_full_hand: 1.0
   pinch_scaling: 1.0
-  alpha: 1.0
+  alpha: 0.0
   w_contact: 6.0
   segment_scaling:
-    thumb: [1.727, 1.53, 1.417]
+    thumb: [1.427, 1.53, 1.417]
     index: [1.617, 1.624, 1.579]
     middle: [1.58, 1.548, 1.47]
     ring: [1.613, 1.613, 1.55]
@@ -33,7 +33,7 @@ retarget:
   mediapipe_rotation:
     x: -7.0
     y: 0.0
-    z: -100.0
+    z: -10.0
 
   lp_alpha: 0.4
 
