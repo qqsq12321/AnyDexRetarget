@@ -5,9 +5,9 @@ skeleton used by the optimizer, so you can see how scaling/segment_scaling
 affect the target keypoints.
 
 Usage:
-    python visualize_scaling.py --robot allegro --play data/avp1.pkl --hand right
-    python visualize_scaling.py --robot allegro --video data/right.mp4 --hand right
-    python visualize_scaling.py --robot wuji --play data/avp1.pkl --hand right
+    python visualize_scaling.py --robot allegro --input replay --file data/avp1.pkl --hand right
+    python visualize_scaling.py --robot allegro --input video --file data/right.mp4 --hand right
+    python visualize_scaling.py --robot wuji --input replay --file data/avp1.pkl --hand right
 """
 
 import argparse
@@ -28,6 +28,7 @@ if str(EXAMPLE_ROOT) not in sys.path:
 from anydexretarget import Retargeter
 from anydexretarget.mediapipe import apply_mediapipe_transformations
 from anydexretarget.optimizer.base_optimizer import M_TO_CM
+from input.cli import DEFAULT_FILES, input_file
 
 # MediaPipe hand connections
 MP_CONNECTIONS = [
@@ -305,8 +306,12 @@ def main():
                  'linkerhand_l21', 'linker_l20', 'unitree_dex5', 'sharpa', 'gaia'],
                         help='Robot hand type (default: allegro)')
     parser.add_argument('--hand', type=str, default='right', choices=['left', 'right'])
-    parser.add_argument('--play', type=str, default=None, help='Pickle file with recorded data')
-    parser.add_argument('--video', type=str, default=None, help='MP4 video file')
+    # Offline only: frames are read straight from the file, not through a device.
+    parser.add_argument('--input', type=str, default='video', choices=list(DEFAULT_FILES),
+                        help='Input source (default: video)')
+    parser.add_argument('--file', type=str, default=None, metavar='FILE',
+                        help='Video / replay file relative to example/ (default: '
+                             + ', '.join(f'{k}: {v}' for k, v in DEFAULT_FILES.items()) + ')')
     args = parser.parse_args()
 
     robot_name_map = {
@@ -319,16 +324,13 @@ def main():
     cfg = args.config if args.config else f"config/adaptive/mediapipe/mediapipe_{robot_file}.yaml"
     config_path = EXAMPLE_ROOT / cfg
 
-    if args.play:
-        pkl_path = EXAMPLE_ROOT / args.play
-        print(f"Loading from {pkl_path}...")
-        frames = get_frames_from_pkl(str(pkl_path), args.hand)
-    elif args.video:
-        video_path = EXAMPLE_ROOT / args.video
-        print(f"Extracting from {video_path}...")
-        frames = get_frames_from_video(str(video_path), args.hand)
+    file_path = EXAMPLE_ROOT / input_file(args)
+    if args.input == 'replay':
+        print(f"Loading from {file_path}...")
+        frames = get_frames_from_pkl(str(file_path), args.hand)
     else:
-        parser.error("Either --play or --video is required")
+        print(f"Extracting from {file_path}...")
+        frames = get_frames_from_video(str(file_path), args.hand)
 
     print(f"Loaded {len(frames)} frames")
 

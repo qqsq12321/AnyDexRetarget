@@ -31,13 +31,11 @@ class Video:
         show_video: bool = False,
         playback_speed: float = 1.0,
         loop: bool = True,
-        depth_scale: float = 1.0,
     ):
         self.hand_side = hand_side.lower()
         self.show_video = show_video
         self.playback_speed = playback_speed
         self.loop = loop
-        self.depth_scale = float(depth_scale)
 
         video_path = Path(video_path)
         if not video_path.is_absolute():
@@ -73,7 +71,6 @@ class Video:
         print(f"  Resolution: {self.frame_width}x{self.frame_height} @ {self.fps:.1f}fps")
         print(f"  Total frames: {self.total_frames}")
         print(f"  Hand side: {self.hand_side}, playback_speed: {self.playback_speed}")
-        print(f"  Depth scale: {self.depth_scale}")
 
     def get_fingers_data(self) -> dict:
         empty = np.zeros((21, 3), dtype=np.float32)
@@ -116,10 +113,7 @@ class Video:
                 raw_lm = [(lm.x, lm.y) for lm in results.multi_hand_landmarks[0].landmark]
 
         if kp is not None:
-            kp = process_landmarks(
-                kp,
-                depth_scale=self.depth_scale,
-            )
+            kp = process_landmarks(kp)
             self._last_valid_kp = kp
             self._last_valid_raw = raw_lm
         else:

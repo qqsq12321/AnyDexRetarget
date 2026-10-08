@@ -1,0 +1,33 @@
+optimizer:
+  type: DexPilot
+  hand_side: right
+  maxeval: 50
+  ftol_abs: 0.0001
+robot:
+  type: shadow_hand
+  num_fingers: 5
+  wrist_link: rh_palm
+  tip_links:
+  - rh_thtip
+  - rh_fftip
+  - rh_mftip
+  - rh_rftip
+  - rh_lftip
+retarget:
+  huber_delta: 3.0
+  norm_delta: 0.04
+  scaling: 1.0
+  project_dist: 0.03
+  escape_dist: 0.05
+  eta1: 0.0001
+  eta2: 0.03
+  lp_alpha: 0.4
+  mediapipe_rotation:
+    x: -10.0
+    y: 0.0
+    z: -120.0
+render:
+  camera:
+    azimuth: 180
+    elevation: 0.0
+    distance: 1.0

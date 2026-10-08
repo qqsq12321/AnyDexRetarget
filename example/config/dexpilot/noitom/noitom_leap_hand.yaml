@@ -1,0 +1,33 @@
+optimizer:
+  type: DexPilot
+  hand_side: right
+  maxeval: 50
+  ftol_abs: 0.0001
+robot:
+  type: leap_hand
+  num_fingers: 4
+  wrist_link: base
+  tip_links:
+  - thumb_tip_head
+  - index_tip_head
+  - middle_tip_head
+  - ring_tip_head
+  urdf_path: assets/leap_hand/leap_hand_right.urdf
+retarget:
+  huber_delta: 3.0
+  norm_delta: 0.04
+  scaling: 1.0
+  project_dist: 0.03
+  escape_dist: 0.05
+  eta1: 0.0001
+  eta2: 0.03
+  lp_alpha: 0.4
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5

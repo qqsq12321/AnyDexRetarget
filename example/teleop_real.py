@@ -23,35 +23,17 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from anydexretarget import Retargeter
+from input.cli import add_input_args, config_dir_for, open_input
 from output.real import GaiaHand20Output, InspireSerialOutput, LinkerL20Output, ShadowTCPOutput, WujiOutput
 
 
 # -------------------- Teleoperation --------------------
 
 def run_teleop(
+    input_args: argparse.Namespace,
     robot_type: str = "wuji",
     hand_side: str = "right",
     config_path: str = "config/mediapipe/mediapipe_wuji_hand.yaml",
-    input_device_type: str = "mediapipe_replay",
-    visionpro_ip: str = "192.168.50.127",
-    quest3_port: int = 9000,
-    quest3_protocol: str = "udp",
-    pico4_mode: str = "relay",
-    pico4_relay_host: str = "127.0.0.1",
-    pico4_relay_port: int = 63902,
-    pico4_port: int = 63901,
-    pico4_broadcast_port: int = 29888,
-    noitom_local_ip: str = "192.168.5.25",
-    noitom_local_port: int = 8000,
-    noitom_server_ip: str = "192.168.5.33",
-    noitom_server_port: int = 9000,
-    mediapipe_replay_path: str = "data/avp1.pkl",
-    video_path: str = "data/right.mp4",
-    playback_speed: float = 1.0,
-    playback_loop: bool = True,
-    enable_recording: bool = False,
-    show_video: bool = False,
-    video_depth_scale: float = 1.25,
     docker_ip: str = "localhost",
     docker_port: int = 5555,
     inspire_port: str = "/dev/ttyUSB0",
@@ -83,64 +65,15 @@ def run_teleop(
 
     Input acquisition + retargeting runs in a background thread, while the main
     thread sends the latest joint target to hardware at a steady control rate.
+    ``input_args`` holds the options registered by ``input.cli.add_input_args``.
     """
     hand_side = hand_side.lower()
     assert hand_side in {"right", "left"}, "hand_side must be 'right' or 'left'"
+    input_device_type = input_args.input
+    playback_loop = not input_args.no_loop
+    enable_recording = input_args.record
 
-    # Import only the selected input backend. Camera/video backends require
-    # OpenCV, which should not be mandatory for headset-based teleoperation.
-    if input_device_type == "visionpro":
-        from input.visionpro import VisionPro
-        input_device = VisionPro(ip=visionpro_ip)
-    elif input_device_type == "quest3":
-        from input.quest3 import Quest3
-        input_device = Quest3(port=quest3_port, protocol=quest3_protocol)
-    elif input_device_type == "pico4":
-        from input.pico4 import Pico4
-        input_device = Pico4(
-            mode=pico4_mode,
-            relay_host=pico4_relay_host,
-            relay_port=pico4_relay_port,
-            port=pico4_port,
-            broadcast_port=pico4_broadcast_port,
-        )
-    elif input_device_type == "noitom":
-        from input.noitom import NoitomInput
-        input_device = NoitomInput(
-            local_ip=noitom_local_ip,
-            local_port=noitom_local_port,
-            server_ip=noitom_server_ip,
-            server_port=noitom_server_port,
-        )
-    elif input_device_type == "mediapipe_replay":
-        if not mediapipe_replay_path:
-            raise ValueError(
-                "mediapipe_replay_path is required for mediapipe_replay mode"
-            )
-        from input.mediapipe_replay import MediaPipeReplay
-        input_device = MediaPipeReplay(
-            record_path=mediapipe_replay_path,
-            playback_speed=playback_speed,
-            loop=playback_loop,
-        )
-    elif input_device_type == "camera":
-        from input.camera import Camera
-        input_device = Camera(camera_id=0, show_preview=True)
-    elif input_device_type == "realsense":
-        from input.realsense import Realsense
-        input_device = Realsense(hand_side=hand_side, show_video=show_video)
-    elif input_device_type == "video":
-        from input.video import Video
-        input_device = Video(
-            video_path=video_path,
-            hand_side=hand_side,
-            show_video=show_video,
-            playback_speed=playback_speed,
-            loop=playback_loop,
-            depth_scale=video_depth_scale,
-        )
-    else:
-        raise ValueError(f"Unknown input device type: {input_device_type}")
+    input_device = open_input(input_args, hand_side)
 
     config_file = Path(__file__).parent / config_path
     retargeter = Retargeter.from_yaml(str(config_file), hand_side)
@@ -191,7 +124,7 @@ def run_teleop(
     else:
         raise ValueError(f"Unknown robot type: {robot_type}")
 
-    if input_device_type in ("mediapipe_replay", "video") and enable_recording:
+    if input_device_type in ("replay", "video") and enable_recording:
         print("Note: Recording disabled in replay/video mode")
         enable_recording = False
 
@@ -218,7 +151,7 @@ def run_teleop(
             fingers_pose = fingers_data[f"{hand_side}_fingers"]
             if np.allclose(fingers_pose, 0):
                 if (
-                    input_device_type in ("mediapipe_replay", "video")
+                    input_device_type in ("replay", "video")
                     and not playback_loop
                     and getattr(input_device, "_finished", False)
                 ):
@@ -249,10 +182,11 @@ def run_teleop(
         print(f"  Input: {input_device_type}")
         print(f"  Recording: {'ON' if enable_recording else 'OFF'}")
         if input_device_type == "pico4":
-            if pico4_mode == "direct":
-                print(f"  Pico4 mode: direct (tcp={pico4_port}, udp_broadcast={pico4_broadcast_port})")
+            if input_args.pico4_mode == "direct":
+                print(f"  Pico4 mode: direct (tcp={input_args.pico4_port}, "
+                      f"udp_broadcast={input_args.pico4_broadcast_port})")
             else:
-                print(f"  Pico4 mode: relay ({pico4_relay_host}:{pico4_relay_port})")
+                print(f"  Pico4 mode: relay ({input_args.pico4_relay_host}:{input_args.pico4_relay_port})")
         if robot_type == "shadow":
             print(f"  Shadow bridge: {docker_ip}:{docker_port}")
         elif robot_type == "inspire":
@@ -302,7 +236,7 @@ def run_teleop(
                 raise RuntimeError("Input/retargeting thread stopped unexpectedly") from input_thread_error
 
             if (
-                input_device_type in ("mediapipe_replay", "video")
+                input_device_type in ("replay", "video")
                 and not playback_loop
                 and getattr(input_device, "_finished", False)
                 and not input_thread.is_alive()
@@ -330,13 +264,13 @@ def main():
         epilog="""
 Examples:
   # Wuji Hand with replay data
-  python teleop_real.py --robot wuji --play data/avp1.pkl
+  python teleop_real.py --robot wuji --input replay --file data/avp1.pkl
 
   # Shadow Hand via TCP to Docker ROS bridge
-  python teleop_real.py --robot shadow --play data/avp1.pkl --docker-ip localhost --docker-port 5555
+  python teleop_real.py --robot shadow --input replay --file data/avp1.pkl --docker-ip localhost --docker-port 5555
 
   # Live VisionPro input with Shadow Hand
-  python teleop_real.py --robot shadow --input visionpro --ip <your-vision-pro-ip>
+  python teleop_real.py --robot shadow --input avp --avp-ip <your-vision-pro-ip>
 
   # Inspire Hand via direct serial control
   python teleop_real.py --robot inspire --input noitom --hand right --noitom-local-ip 192.168.5.25 --inspire-port /dev/ttyUSB0
@@ -351,83 +285,34 @@ Examples:
   python teleop_real.py --robot linker_l20 --input pico4 --hand right --pico4-mode relay --l20-port /dev/ttyUSB0
 
   # Linker L20 dry-run register print without opening serial
-  python teleop_real.py --robot linker_l20 --play data/avp1.pkl --l20-dry-run --l20-print-registers
+  python teleop_real.py --robot linker_l20 --input replay --file data/avp1.pkl --l20-dry-run --l20-print-registers
 
   # GaiaHand20 without main board (direct serial)
-  python teleop_real.py --robot gaia --play data/avp1.pkl --gaia-port /dev/ttyUSB0 --gaia-baudrate 230400 --no-gaia-use-slcan --no-gaia-has-main-board
+  python teleop_real.py --robot gaia --input replay --file data/avp1.pkl --gaia-port /dev/ttyUSB0 --gaia-baudrate 230400 --no-gaia-use-slcan --no-gaia-has-main-board
 
   # RealSense camera input
-  python teleop_real.py --robot shadow --realsense
+  python teleop_real.py --robot shadow --input realsense
 
   # Video file input
-  python teleop_real.py --robot shadow --video data/right.mp4
+  python teleop_real.py --robot shadow --input video --file data/right.mp4
 
   # Record input data while using VisionPro
-  python teleop_real.py --input visionpro --record
+  python teleop_real.py --input avp --record
         """,
     )
 
     parser.add_argument("--config", type=str, default=None,
                         help="Path to YAML configuration file (overrides --robot and --optimizer)")
     parser.add_argument("--optimizer", type=str, default="adaptive",
-                        choices=["adaptive", "vector"],
-                        help="Optimizer type: adaptive (default) or vector (KeyVectorOptimizer)")
+                        choices=["adaptive", "vector", "dexpilot"],
+                        help="Optimizer type: adaptive (default), vector (KeyVectorOptimizer), or dexpilot (DexPilotOptimizer)")
     parser.add_argument("--robot", type=str, default="wuji",
                         choices=["wuji", "shadow", "inspire", "gaia", "linker_l20"],
                         help="Robot hand type (default: wuji)")
     parser.add_argument("--hand", type=str, default="right", choices=["left", "right"],
                         help="Hand side (default: right)")
 
-    parser.add_argument("--input", type=str, default=None,
-                        choices=["visionpro", "quest3", "pico4", "noitom", "mediapipe_replay", "camera", "realsense", "video"],
-                        help="Input device type")
-    parser.add_argument("--realsense", action="store_true",
-                        help="Use RealSense camera (shortcut for --input realsense)")
-    parser.add_argument("--show-video", action="store_true",
-                        help="Show video with MediaPipe landmarks overlay")
-    parser.add_argument("--video-depth-scale", type=float, default=1.25,
-                        help="Extra scale applied to MediaPipe z/depth for video input (default: 1.25)")
-
-    parser.add_argument("--play", type=str, default=None, metavar="FILE",
-                        help="Play MediaPipe recording file (shortcut for --input mediapipe_replay)")
-    parser.add_argument("--video", type=str, default=None, metavar="FILE",
-                        help="Play MP4/AVI video file with MediaPipe detection (shortcut for --input video)")
-
-    parser.add_argument("--ip", type=str, default="192.168.50.127",
-                        help="VisionPro IP address (default: 192.168.50.127)")
-    parser.add_argument("--quest3-port", type=int, default=9000,
-                        help="Quest 3 HTS listener port (default: 9000)")
-    parser.add_argument("--quest3-protocol", type=str, default="udp", choices=["udp", "tcp"],
-                        help="Quest 3 HTS transport protocol (default: udp)")
-
-    parser.add_argument("--pico4-mode", type=str, default="relay", choices=["relay", "direct"],
-                        help="Pico 4 input mode: relay daemon (default) or direct TCP server")
-    parser.add_argument("--pico4-relay-host", type=str, default="127.0.0.1",
-                        help="Pico 4 relay daemon host (default: 127.0.0.1)")
-    parser.add_argument("--pico4-relay-port", type=int, default=63902,
-                        help="Pico 4 relay daemon port (default: 63902)")
-    parser.add_argument("--pico4-port", type=int, default=63901,
-                        help="Pico 4 TCP listen port (default: 63901)")
-    parser.add_argument("--pico4-broadcast-port", type=int, default=29888,
-                        help="Pico 4 direct-mode UDP broadcast port (default: 29888)")
-
-    parser.add_argument("--noitom-local-ip", type=str, default="192.168.5.25",
-                        help="Noitom: Linux IP (must match Axis Studio destination, default: 192.168.5.25)")
-    parser.add_argument("--noitom-local-port", type=int, default=8000,
-                        help="Noitom: local UDP port (default: 7012)")
-    parser.add_argument("--noitom-server-ip", type=str, default="192.168.5.33",
-                        help="Noitom: Windows Axis Studio IP (default: 192.168.5.33)")
-    parser.add_argument("--noitom-server-port", type=int, default=9000,
-                        help="Noitom: Axis Studio BVH broadcast port (default: 9000)")
-
-    parser.add_argument("--speed", type=float, default=1.0,
-                        help="Playback speed for replay mode (default: 1.0)")
-    parser.add_argument("--no-loop", action="store_true",
-                        help="Disable looping for replay/video mode")
-    parser.add_argument("--record", action="store_true",
-                        help="Record input data to file")
-    parser.add_argument("--output", type=str, default=None, metavar="FILE",
-                        help="Output file for recording (default: auto-generated)")
+    add_input_args(parser, default="replay", recording=True)
 
     # Shadow Hand TCP options
     parser.add_argument("--docker-ip", type=str, default="localhost",
@@ -490,28 +375,6 @@ Examples:
 
     args = parser.parse_args()
 
-    input_device_type = args.input
-    mediapipe_replay_path = ""
-    video_path = ""
-
-    if args.realsense:
-        input_device_type = "realsense"
-    elif args.video:
-        input_device_type = "video"
-        video_path = args.video
-    elif args.play:
-        input_device_type = "mediapipe_replay"
-        mediapipe_replay_path = args.play
-
-    if input_device_type is None:
-        input_device_type = "mediapipe_replay"
-        mediapipe_replay_path = "data/avp1.pkl"
-
-    if input_device_type == "mediapipe_replay" and not mediapipe_replay_path:
-        parser.error("--play FILE is required for mediapipe_replay mode")
-    if input_device_type == "video" and not video_path:
-        parser.error("--video FILE is required for video mode")
-
     config_path = args.config
     if config_path is None:
         robot_name_map = {
@@ -521,40 +384,15 @@ Examples:
             "gaia": "gaia_hand20",
             "linker_l20": "linker_l20",
         }
-        input_to_dir = {
-            "quest3": "quest3",
-            "visionpro": "avp",
-            "noitom": "noitom",
-            "pico4": "pico4",
-        }
-        config_dir = input_to_dir.get(input_device_type, "mediapipe")
+        config_dir = config_dir_for(args.input)
         robot_file = robot_name_map.get(args.robot, args.robot)
         config_path = f"config/{args.optimizer}/{config_dir}/{config_dir}_{robot_file}.yaml"
 
     log = run_teleop(
+        input_args=args,
         robot_type=args.robot,
         hand_side=args.hand,
         config_path=config_path,
-        input_device_type=input_device_type,
-        visionpro_ip=args.ip,
-        quest3_port=args.quest3_port,
-        quest3_protocol=args.quest3_protocol,
-        pico4_mode=args.pico4_mode,
-        pico4_relay_host=args.pico4_relay_host,
-        pico4_relay_port=args.pico4_relay_port,
-        pico4_port=args.pico4_port,
-        pico4_broadcast_port=args.pico4_broadcast_port,
-        noitom_local_ip=args.noitom_local_ip,
-        noitom_local_port=args.noitom_local_port,
-        noitom_server_ip=args.noitom_server_ip,
-        noitom_server_port=args.noitom_server_port,
-        mediapipe_replay_path=mediapipe_replay_path,
-        video_path=video_path,
-        playback_speed=args.speed,
-        playback_loop=not args.no_loop,
-        enable_recording=args.record,
-        show_video=args.show_video,
-        video_depth_scale=args.video_depth_scale,
         docker_ip=args.docker_ip,
         docker_port=args.docker_port,
         inspire_port=args.inspire_port,
@@ -584,8 +422,8 @@ Examples:
     )
 
     if log is not None and len(log) > 0:
-        if args.output:
-            log_path = Path(args.output)
+        if args.record_file:
+            log_path = Path(args.record_file)
         else:
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             log_path = Path(__file__).parent / f"input_data_log_{timestamp}.pkl"

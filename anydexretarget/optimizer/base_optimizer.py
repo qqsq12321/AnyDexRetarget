@@ -419,16 +419,25 @@ class BaseOptimizer(ABC):
             Optimizer instance
         """
         from .analytical_optimizer import AdaptiveOptimizerAnalytical
+        from .key_vector_optimizer import KeyVectorOptimizer
+        from .dexpilot_optimizer import DexPilotOptimizer
 
         opt_type = config.get('optimizer', {}).get('type', 'AdaptiveOptimizerAnalytical')
 
-        if opt_type == 'AdaptiveOptimizerAnalytical':
-            return AdaptiveOptimizerAnalytical(config)
-        elif opt_type == 'KeyVectorOptimizer':
-            from .key_vector_optimizer import KeyVectorOptimizer
-            return KeyVectorOptimizer(config)
+        # Support both full and simplified type names
+        type_mapping = {
+            'AdaptiveOptimizerAnalytical': AdaptiveOptimizerAnalytical,
+            'Adaptive': AdaptiveOptimizerAnalytical,
+            'KeyVectorOptimizer': KeyVectorOptimizer,
+            'KeyVector': KeyVectorOptimizer,
+            'DexPilotOptimizer': DexPilotOptimizer,
+            'DexPilot': DexPilotOptimizer,
+        }
+
+        if opt_type in type_mapping:
+            return type_mapping[opt_type](config)
         else:
-            raise ValueError(f"Unknown optimizer type: {opt_type}")
+            raise ValueError(f"Unknown optimizer type: {opt_type}. Supported types: {list(type_mapping.keys())}")
 
     @abstractmethod
     def solve(

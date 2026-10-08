@@ -6,15 +6,15 @@ by median human segment lengths from a natural open-hand capture.
 Outputs recommended segment_scaling values and optionally writes them back to
 both Adaptive and Vector config YAML files.
 
-Supported inputs: mediapipe (video/camera), noitom, quest3, avp, pico4
+Supported inputs: realsense, video (both use mediapipe configs), noitom, quest3, avp, pico4
 
 Usage:
-    python test/calibrate_scaling.py --robot sharpa --input mediapipe --video data/right.mp4
-    python test/calibrate_scaling.py --robot wuji --input mediapipe
+    python test/calibrate_scaling.py --robot sharpa --input video --file data/right.mp4
+    python test/calibrate_scaling.py --robot wuji --input realsense
     python test/calibrate_scaling.py --robot wuji --input noitom
     python test/calibrate_scaling.py --robot wuji --input quest3
     python test/calibrate_scaling.py --robot wuji --input avp
-    python test/calibrate_scaling.py --robot wuji --input mediapipe --optimizer both --write
+    python test/calibrate_scaling.py --robot wuji --input realsense --optimizer both --write
 """
 
 import argparse
@@ -38,6 +38,7 @@ if str(EXAMPLE_ROOT) not in sys.path:
 from anydexretarget import Retargeter
 from anydexretarget.mediapipe import apply_mediapipe_transformations
 from anydexretarget.optimizer.utils import CM_TO_M
+from input.cli import add_input_args, config_dir_for, open_input
 
 FINGER_NAMES = ["thumb", "index", "middle", "ring", "pinky"]
 
@@ -55,13 +56,8 @@ ROBOT_NAME_MAP = {
     "gaia": "gaia_hand20",
 }
 
-INPUT_TO_CONFIG_DIR = {
-    "mediapipe": "mediapipe",
-    "noitom": "noitom",
-    "quest3": "quest3",
-    "avp": "avp",
-    "pico4": "pico4",
-}
+# Live sources only: calibration captures a held pose, not a recording.
+CALIBRATION_INPUTS = ("realsense", "video", "avp", "quest3", "pico4", "noitom")
 
 # MediaPipe task_kp → (finger, level): level 0=PIP, 1=DIP, 2=TIP
 _KP_TO_FINGER_LEVEL = {
@@ -75,7 +71,7 @@ _KP_TO_FINGER_LEVEL = {
 
 def _resolve_config_paths(args, robot_file):
     """Return (adaptive_path, vector_path) as Path objects (may not exist)."""
-    config_dir = INPUT_TO_CONFIG_DIR[args.input]
+    config_dir = config_dir_for(args.input)
     adaptive = EXAMPLE_ROOT / f"config/adaptive/{config_dir}/{config_dir}_{robot_file}.yaml"
     vector   = EXAMPLE_ROOT / f"config/vector/{config_dir}/{config_dir}_{robot_file}.yaml"
     return adaptive, vector
@@ -598,45 +594,19 @@ def run_batch_calibration(args):
         print(f"跳过（该输入源无配置）: {', '.join(skipped)}")
 
 
+def add_calibration_input_args(parser, default="realsense", choices=CALIBRATION_INPUTS):
+    """Register the shared input options with the calibration defaults."""
+    add_input_args(parser, default=default, choices=choices)
+    # Calibration listens on every interface.
+    parser.set_defaults(noitom_local_ip="0.0.0.0")
+
+
 def create_input_device(args):
-    """Create input device based on --input type."""
-    if args.input == "mediapipe":
-        if args.video:
-            from input.video import Video
-            return Video(
-                video_path=args.video,
-                hand_side=args.hand,
-                show_video=args.show_video,
-                loop=True,
-            )
-        else:
-            from input.realsense import Realsense
-            return Realsense(hand_side=args.hand, show_video=True)
-    elif args.input == "noitom":
-        from input.noitom import NoitomInput
-        return NoitomInput(
-            local_ip=args.noitom_local_ip,
-            local_port=args.noitom_local_port,
-            server_ip=args.noitom_server_ip,
-            server_port=args.noitom_server_port,
-        )
-    elif args.input == "quest3":
-        from input.quest3 import Quest3
-        return Quest3(port=args.quest3_port, protocol=args.quest3_protocol)
-    elif args.input == "avp":
-        from input.visionpro import VisionPro
-        return VisionPro(ip=args.avp_ip)
-    elif args.input == "pico4":
-        from input.pico4 import Pico4
-        return Pico4(
-            mode=args.pico4_mode,
-            relay_host=args.pico4_relay_host,
-            relay_port=args.pico4_relay_port,
-            port=args.pico4_port,
-            broadcast_port=args.pico4_broadcast_port,
-        )
-    else:
-        raise ValueError(f"Unknown input: {args.input}")
+    """Create the calibration input device selected by --input."""
+    if args.input == "realsense":
+        # The pose has to be checked on screen, so RealSense always previews.
+        args = argparse.Namespace(**{**vars(args), "show_video": True})
+    return open_input(args, args.hand)
 
 
 def fmt_cm(v):
@@ -657,37 +627,10 @@ def main():
                              "link lengths by human phalanx lengths, and the human "
                              "side is rotation-invariant, so one capture serves all.")
     parser.add_argument("--hand", default="right", choices=["left", "right"])
-    parser.add_argument("--input", default="mediapipe",
-                        choices=["mediapipe", "noitom", "quest3", "avp", "pico4"],
-                        help="Input source (default: mediapipe)")
-    parser.add_argument("--video", default=None,
-                        help="Video file for mediapipe input (omit to use camera)")
-    parser.add_argument("--show-video", action="store_true")
     parser.add_argument("--duration", type=float, default=5.0,
                         help="采集时长（秒），默认 5")
     parser.add_argument("--pose-delay", type=float, default=2.0,
                         help="按 Enter/空格/s 后留给调整姿势的时间（秒），默认 2")
-    # Noitom
-    parser.add_argument("--noitom-local-ip", default="0.0.0.0")
-    parser.add_argument("--noitom-local-port", type=int, default=8000)
-    parser.add_argument("--noitom-server-ip", default="192.168.5.33")
-    parser.add_argument("--noitom-server-port", type=int, default=9000)
-    # Quest3
-    parser.add_argument("--quest3-port", type=int, default=9000)
-    parser.add_argument("--quest3-protocol", default="udp", choices=["udp", "tcp"])
-    # Pico4
-    parser.add_argument("--pico4-mode", default="relay", choices=["relay", "direct"],
-                        help="Pico 4 input mode: relay daemon (default) or direct TCP server")
-    parser.add_argument("--pico4-relay-host", default="127.0.0.1",
-                        help="Pico 4 relay daemon host (default: 127.0.0.1)")
-    parser.add_argument("--pico4-relay-port", type=int, default=63902,
-                        help="Pico 4 relay daemon port (default: 63902)")
-    parser.add_argument("--pico4-port", type=int, default=63901,
-                        help="Pico 4 direct-mode TCP listen port (default: 63901)")
-    parser.add_argument("--pico4-broadcast-port", type=int, default=29888,
-                        help="Pico 4 direct-mode UDP broadcast port (default: 29888)")
-    # AVP
-    parser.add_argument("--avp-ip", default="192.168.50.127")
     # Write-back options
     parser.add_argument("--optimizer", default="both",
                         choices=["adaptive", "vector", "both"],
@@ -696,6 +639,7 @@ def main():
                         help="标定后直接写入配置文件，不询问")
     parser.add_argument("--dry-run", action="store_true",
                         help="只显示建议值，绝不写入配置文件")
+    add_calibration_input_args(parser)
     args = parser.parse_args()
     if args.write and args.dry_run:
         parser.error("--write and --dry-run cannot be used together")
@@ -710,7 +654,7 @@ def main():
 
     # Resolve config path
     robot_file = ROBOT_NAME_MAP.get(args.robot, args.robot)
-    config_dir = INPUT_TO_CONFIG_DIR[args.input]
+    config_dir = config_dir_for(args.input)
     config_path = f"config/adaptive/{config_dir}/{config_dir}_{robot_file}.yaml"
     config_file = EXAMPLE_ROOT / config_path
 

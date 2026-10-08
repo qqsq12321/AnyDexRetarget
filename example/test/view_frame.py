@@ -44,7 +44,6 @@ def main():
     parser.add_argument("--frame", type=int, required=True, help="目标帧号")
     parser.add_argument("--video", type=str, default=str(EXAMPLE_DIR / "data" / "right.mp4"))
     parser.add_argument("--hand", type=str, default="right", choices=["left", "right"])
-    parser.add_argument("--depth-scale", type=float, default=1.25)
     args = parser.parse_args()
 
     # 加载配置
@@ -94,7 +93,7 @@ def main():
             if chosen is None: chosen = det.multi_hand_landmarks[0]
         if chosen is not None:
             kp_raw = landmarks_to_array(chosen, w, h)
-            last_valid_kp = process_landmarks(kp_raw, args.depth_scale)
+            last_valid_kp = process_landmarks(kp_raw)
         if last_valid_kp is not None:
             qpos, verbose = retargeter.retarget_verbose(last_valid_kp, apply_filter=True)
             final_qpos = qpos

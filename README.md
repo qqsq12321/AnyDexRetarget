@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-High-precision hand pose retargeting system. Supports two optimizers, multiple dexterous hands, and multiple hand-tracking input sources for simulation and reality.
+High-precision hand pose retargeting system. Supports three optimizers, multiple dexterous hands, and multiple hand-tracking input sources for simulation and reality.
 
 ## Demo
 
@@ -28,16 +28,21 @@ https://github.com/user-attachments/assets/f6d87bf8-281f-4665-9023-111c90308ce2
 
 https://github.com/user-attachments/assets/e3a2432a-129f-4b76-98c7-a4834b7240ba
 
+## Related Projects
+
+- [vr_teleop](https://github.com/qqsq12321/vr_teleop) - VR hand-tracking teleoperation for **robot arms**. Covers Kinova Gen3, Realman RM65 (single and dual arm), Piper, DexForce, and Aloha in simulation and/or on real hardware, and pulls in AnyDexRetarget as a submodule for the dexterous-hand part. Use it when you need arm motion as well as finger retargeting.
+
 ## Features
 
 - **13 Robot Hands**: Shadow, Wuji, Allegro, Inspire, Ability, Leap, SVH, LinkerHand L21, Linker L20, ROHand, Unitree Dex5, Sharpa, and Gaia Hand20
-- **Two Optimizers**: `adaptive` (pinch-aware, default) and `vector` (key-vector matching)
+- **Three Optimizers**: `adaptive` (pinch-aware, default), `vector` (key-vector matching), and `dexpilot` (adaptive distance projection for grasping)
 - **High-Precision Pinch**: Adaptive optimization for accurate finger-to-thumb contact
 - **Real-time Performance**: Analytical gradients + NLopt SLSQP (~2ms per frame)
 - **Multiple Input Sources**: Apple Vision Pro, Meta Quest 3, Noitom PNS-G gloves, laptop camera (MediaPipe), recorded data replay
 
 ## Table of Contents
 
+- [Related Projects](#related-projects)
 - [Supported Robots](#supported-robots)
 - [Repository Structure](#repository-structure)
 - [Installation](#installation)
@@ -83,7 +88,7 @@ example/config/
 | **Sharpa Hand** | `sharpa` | `sharpa_hand` | Sharpa Wave Hand, 5 fingers / 22 DOF |
 | **Gaia Hand20** | `gaia` | `gaia_hand20` | Gaia Hand20, 5 fingers |
 
-> **Note on Noitom configs:** Only `shadow_hand`, `wuji_hand`, and `inspire_hand` have been roughly calibrated for Noitom input. If you need to fine-tune the mapping accuracy between your hand and the robot hand, run `debug_skeleton.py` to visualize three skeletons side-by-side: **Blue** = raw input, **Green** = after scaling, **Red** = retargeted FK result. Compare the skeleton sizes and adjust the corresponding YAML config parameters (`scaling`, `segment_scaling`, `key_vectors[].scale`, etc.) accordingly.
+> **Note on Noitom configs:** Only `shadow_hand`, `wuji_hand`, and `inspire_hand` have been roughly calibrated for Noitom input. If you need to fine-tune the mapping accuracy between your hand and the robot hand, run `debug_skeleton.py` to visualize four skeletons side-by-side: **Blue** = raw input, **Yellow** = uniformly scaled by `pinch_scaling`, **Green** = after segment scaling, **Red** = retargeted FK result. Compare the skeleton sizes and adjust the corresponding YAML config parameters (`scaling`, `segment_scaling`, `key_vectors[].scale`, etc.) accordingly.
 >
 > ```bash
 > cd example
@@ -101,12 +106,14 @@ example/config/
 │       ├── base_optimizer.py              # Base optimizer with FK/Jacobian
 │       ├── analytical_optimizer.py        # AdaptiveOptimizerAnalytical
 │       ├── key_vector_optimizer.py        # KeyVectorOptimizer
+│       ├── dexpilot_optimizer.py          # DexPilotOptimizer
 │       ├── robot_configs.py               # Robot link/URDF configurations
 │       └── utils.py                       # TimingStats, LPFilter, Huber loss
 ├── example/
 │   ├── teleop_sim.py                      # MuJoCo simulation demo
 │   ├── teleop_real.py                     # Real hardware control
 │   ├── input/                             # Input device modules
+│   │   ├── cli.py                         # Shared --input / per-device options
 │   │   ├── landmark_utils.py              # Shared MediaPipe landmark processing
 │   │   ├── camera.py / video.py / ...     # Input devices
 │   │   └── noitom.py                      # Noitom PNS-G glove input
@@ -124,12 +131,10 @@ example/config/
 │   │   │   ├── avp/                       # Apple Vision Pro
 │   │   │   ├── quest3/                    # Meta Quest 3
 │   │   │   ├── mediapipe/                 # Camera / video / replay
+│   │   │   ├── pico4/                     # Pico 4
 │   │   │   └── noitom/                    # Noitom PNS-G gloves
-│   │   └── vector/                        # KeyVectorOptimizer configs
-│   │       ├── avp/
-│   │       ├── quest3/
-│   │       ├── mediapipe/
-│   │       └── noitom/
+│   │   ├── vector/                        # KeyVectorOptimizer configs (same layout)
+│   │   └── dexpilot/                      # DexPilotOptimizer configs (same layout)
 │   └── data/                              # Sample recordings
 ├── assets/                                # Robot URDF / MuJoCo assets
 └── requirements.txt
@@ -169,7 +174,7 @@ pip install -e .
 
 **macOS MuJoCo**: Use `mjpython` instead of `python`:
 ```bash
-mjpython example/teleop_sim.py --video example/data/right.mp4
+mjpython example/teleop_sim.py --input video --file example/data/right.mp4
 ```
 
 ## Quick Start
@@ -185,10 +190,10 @@ The repository currently includes:
 cd example
 
 # Run the included sample video (adaptive optimizer, default)
-python teleop_sim.py --video data/right.mp4 --robot shadow --hand right
+python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right
 
 # Gaia Hand20 (right/left both supported)
-python teleop_sim.py --video data/right.mp4 --robot gaia --hand right
+python teleop_sim.py --input video --file data/right.mp4 --robot gaia --hand right
 
 # Pico 4 direct mode (PC broadcasts itself and accepts the headset connection)
 python teleop_sim.py --input pico4 --pico4-mode direct --robot gaia --hand right
@@ -197,28 +202,31 @@ python teleop_sim.py --input pico4 --pico4-mode direct --robot gaia --hand right
 python teleop_sim.py --input pico4 --robot gaia --hand right
 
 # Switch to KeyVector optimizer
-python teleop_sim.py --video data/right.mp4 --robot shadow --hand right --optimizer vector
+python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right --optimizer vector
+
+# Switch to DexPilot optimizer
+python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right --optimizer dexpilot
 
 # Replay the optional sample recording
-python teleop_sim.py --play data/avp1.pkl --robot shadow --hand right
+python teleop_sim.py --input replay --file data/avp1.pkl --robot shadow --hand right
 
 # Real-time with laptop camera (MediaPipe)
 python teleop_sim.py --input camera --robot shadow --hand right
 
 # Real-time with Vision Pro
-python teleop_sim.py --input visionpro --robot shadow --ip <vision-pro-ip> --hand right
+python teleop_sim.py --input avp --avp-ip <vision-pro-ip> --robot shadow --hand right
 
 # Real-time with Quest 3 (via Hand Tracking Streamer)
-python teleop_sim.py --input quest3 --robot shadow --port 9000 --hand right
+python teleop_sim.py --input quest3 --quest3-port 9000 --robot shadow --hand right
 
 # Real-time with RealSense
-python teleop_sim.py --realsense --robot shadow --hand right --show-video
+python teleop_sim.py --input realsense --show-video --robot shadow --hand right
 
 # Noitom PNS-G gloves
-python teleop_sim.py --input noitom --robot inspire --hand right --noitom-local-ip 192.168.5.25
+python teleop_sim.py --input noitom --noitom-local-ip 192.168.5.25 --robot inspire --hand right
 
 # Replay your own recording (.pkl)
-python teleop_sim.py --play path/to/record.pkl --robot shadow --hand right
+python teleop_sim.py --input replay --file path/to/record.pkl --robot shadow --hand right
 ```
 
 ### Real Hardware
@@ -229,10 +237,10 @@ python teleop_sim.py --play path/to/record.pkl --robot shadow --hand right
 cd example
 
 # Live Vision Pro -> Wuji Hand (adaptive)
-python teleop_real.py --robot wuji --input visionpro --ip <vision-pro-ip> --hand right
+python teleop_real.py --robot wuji --input avp --avp-ip <vision-pro-ip> --hand right
 
 # Live Vision Pro -> Wuji Hand (vector optimizer)
-python teleop_real.py --robot wuji --input visionpro --ip <vision-pro-ip> --hand right --optimizer vector
+python teleop_real.py --robot wuji --input avp --avp-ip <vision-pro-ip> --hand right --optimizer vector
 
 # Noitom PNS-G gloves -> Inspire Hand
 python teleop_real.py --robot inspire --input noitom --hand right --noitom-local-ip 192.168.5.25
@@ -242,7 +250,10 @@ python teleop_real.py --robot gaia --input pico4 --hand right --pico4-mode relay
   --gaia-port /dev/ttyACM0
 
 # Replay the optional sample recording -> Wuji Hand
-python teleop_real.py --robot wuji --play data/avp1.pkl --hand right
+python teleop_real.py --robot wuji --input replay --file data/avp1.pkl --hand right
+
+# Same, with the DexPilot optimizer
+python teleop_real.py --robot wuji --input replay --file data/avp1.pkl --hand right --optimizer dexpilot
 
 # Linux USB permission (Inspire / Gaia examples)
 sudo chmod a+rw /dev/ttyUSB0
@@ -262,29 +273,48 @@ python -c "import hand; print('Gaia HandSDK OK')"
 
 ### Command Reference
 
+The input options below are shared by `teleop_sim.py`, `teleop_real.py`, `debug_skeleton.py`, and the `calibrate_*.py` scripts (`example/input/cli.py`).
+
 #### Input Source
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--input` | - | `teleop_sim.py`: `visionpro` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `mediapipe_replay` |
-| `--input` | - | `teleop_real.py`: `visionpro` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `mediapipe_replay` |
+| `--input` | `video` (sim) / `replay` (real) | `avp` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `replay` |
+| `--file FILE` | `data/right.mp4` (video) / `data/avp1.pkl` (replay) | File for `video` / `replay` input |
 | `--hand` | `right` | Hand side (`left`/`right`) |
-| `--realsense` | off | Shortcut for `--input realsense` |
-| `--play FILE` | - | Replay recording (shortcut for `--input mediapipe_replay`) |
-| `--video FILE` | - | Video file input with MediaPipe hand detection |
-| `--ip` | `192.168.50.127` | Vision Pro IP |
-| `--port` | `9000` | Quest 3 HTS listener port |
-| `--protocol` | `udp` | Quest 3 HTS transport protocol (`udp`/`tcp`) |
+| `--show-video` | off | Show RGB / landmark preview for camera-based inputs |
+
+#### Device Connection
+
+Only the options of the selected `--input` device are used.
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--avp-ip` | `192.168.50.127` | Vision Pro IP |
+| `--quest3-port` | `9000` | Quest 3 HTS listener port |
+| `--quest3-protocol` | `udp` | Quest 3 HTS transport protocol (`udp`/`tcp`) |
+| `--pico4-mode` | `relay` | `relay` (via `input/pico4_daemon.py`) or `direct` (PC TCP server) |
+| `--pico4-relay-host` / `--pico4-relay-port` | `127.0.0.1` / `63902` | Relay mode: daemon address |
+| `--pico4-port` / `--pico4-broadcast-port` | `63901` / `29888` | Direct mode: TCP listen port / UDP broadcast port |
 | `--noitom-local-ip` | `192.168.5.25` | Noitom: local IP (this machine) |
 | `--noitom-local-port` | `8000` | Noitom: local UDP port |
 | `--noitom-server-ip` | `192.168.5.33` | Noitom: Axis Studio IP (Windows) |
 | `--noitom-server-port` | `9000` | Noitom: Axis Studio port |
 
+#### Playback & Recording
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--speed` | `1.0` | Playback speed for `video` / `replay` |
+| `--no-loop` | off | Stop at the end of the file instead of looping |
+| `--record` | off | Record input data (teleop scripts only) |
+| `--record-file FILE` | auto-generated | Recording output path |
+
 #### Optimizer
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--optimizer` | `adaptive` | Optimizer type: `adaptive` or `vector` |
+| `--optimizer` | `adaptive` | Optimizer type: `adaptive`, `vector`, or `dexpilot` |
 | `--config` | auto-select | Configuration file (overrides `--robot` and `--optimizer`) |
 
 #### Robot Hand & Output
@@ -292,11 +322,6 @@ python -c "import hand; print('Gaia HandSDK OK')"
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--robot` | `shadow` (sim) / `wuji` (real) | Robot hand type; real output supports `wuji`, `shadow`, `inspire`, and `gaia` |
-| `--record` | - | Record input data |
-| `--output FILE` | - | Output file path for recording |
-| `--show-video` | off | Show RGB / landmark preview for supported inputs |
-| `--speed` | `1.0` | Playback speed |
-| `--no-loop` | - | Disable looping for replay |
 | `--headless` | off | Run simulation without GUI viewer |
 | `--save-sim FILE` | - | Save offscreen simulation video |
 | `--save-qpos FILE` | - | Save target / simulated qpos trajectory |
@@ -305,7 +330,7 @@ python -c "import hand; print('Gaia HandSDK OK')"
 
 #### debug_skeleton.py
 
-Compare three hand skeletons in the MuJoCo viewer to debug retargeting issues:
+Compare four hand skeletons in the MuJoCo viewer to debug retargeting issues:
 
 - **Blue**: Raw MediaPipe skeleton (after coordinate transform, before scaling)
 - **Yellow**: Raw skeleton uniformly scaled by `pinch_scaling`
@@ -319,11 +344,11 @@ cd example
 python test/debug_skeleton.py --robot leap --input camera
 
 # With video file
-python test/debug_skeleton.py --robot leap --video data/right.mp4
+python test/debug_skeleton.py --robot leap --input video --file data/right.mp4
 
 # With optional sample recording, compare optimizers
-python test/debug_skeleton.py --robot shadow --play data/avp1.pkl --optimizer adaptive
-python test/debug_skeleton.py --robot shadow --play data/avp1.pkl --optimizer vector
+python test/debug_skeleton.py --robot shadow --input replay --file data/avp1.pkl --optimizer adaptive
+python test/debug_skeleton.py --robot shadow --input replay --file data/avp1.pkl --optimizer vector
 
 # With RealSense D435
 python test/debug_skeleton.py --robot sharpa --input realsense --hand right
@@ -338,7 +363,7 @@ python test/debug_skeleton.py --robot inspire --input noitom --noitom-local-ip 1
 python test/debug_skeleton.py --robot inspire --input noitom --optimizer vector --noitom-local-ip 192.168.5.25
 
 # With your own recorded data
-python test/debug_skeleton.py --robot shadow --play path/to/record.pkl
+python test/debug_skeleton.py --robot shadow --input replay --file path/to/record.pkl
 ```
 
 #### calibrate.py
@@ -353,7 +378,7 @@ python test/calibrate.py rotation --robot linker_l20 --input pico4 --hand right
 
 # Calibrate input rotation from a trusted recording; the filename must contain
 # its original source name, such as avp, pico4, noitom, quest3, or mediapipe
-python test/calibrate.py rotation --robot wuji --input data/avp1.pkl --hand right --trust-pkl
+python test/calibrate.py rotation --robot wuji --input replay --file data/avp1.pkl --hand right --trust-pkl
 
 # Calibrate full-hand segment_scaling
 python test/calibrate.py scaling --robot linker_l20 --input pico4 --hand right --write
@@ -381,10 +406,10 @@ Calibrate `segment_scaling` for any robot hand and input source. Collects data w
 cd example
 
 # Calibrate with RealSense
-python test/calibrate_scaling.py --robot sharpa --input mediapipe
+python test/calibrate_scaling.py --robot sharpa --input realsense
 
 # Calibrate with video
-python test/calibrate_scaling.py --robot shadow --input mediapipe --video data/right.mp4
+python test/calibrate_scaling.py --robot shadow --input video --file data/right.mp4
 
 # Calibrate with Vision Pro
 python test/calibrate_scaling.py --robot wuji --input avp --avp-ip 192.168.5.32
@@ -403,8 +428,8 @@ Visualize how `scaling` and `segment_scaling` parameters affect MediaPipe keypoi
 ```bash
 cd example
 
-python test/visualize_scaling.py --robot leap --video data/right.mp4 --hand right
-python test/visualize_scaling.py --robot allegro --play data/avp1.pkl --hand right
+python test/visualize_scaling.py --robot leap --input video --file data/right.mp4 --hand right
+python test/visualize_scaling.py --robot allegro --input replay --file data/avp1.pkl --hand right
 ```
 
 ## API Reference

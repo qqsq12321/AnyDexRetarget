@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-高精度手部姿态重定向系统。支持两种优化器（**Adaptive** 和 **KeyVector**），多种灵巧手模型和多种手部追踪输入源，可用于仿真与遥操作。
+高精度手部姿态重定向系统。支持三种优化器（**Adaptive**、**KeyVector** 和 **DexPilot**），多种灵巧手模型和多种手部追踪输入源，可用于仿真与遥操作。
 
 ## 演示
 
@@ -28,16 +28,21 @@ https://github.com/user-attachments/assets/f6d87bf8-281f-4665-9023-111c90308ce2
 
 https://github.com/user-attachments/assets/e3a2432a-129f-4b76-98c7-a4834b7240ba
 
+## 相关项目
+
+- [vr_teleop](https://github.com/qqsq12321/vr_teleop) —— 面向**机械臂**的 VR 手部追踪遥操作项目。支持 Kinova Gen3、Realman RM65（单臂/双臂）、Piper、DexForce、Aloha 等机型的仿真与/或真机控制，并以 submodule 形式引入 AnyDexRetarget 完成灵巧手部分。需要连同手臂一起控制时用它。
+
 ## 特性
 
 - **多灵巧手支持**：Shadow Hand、Wuji Hand、Inspire Hand、Gaia Hand20 等 13 款灵巧手开箱即用
-- **两种优化器**：`adaptive`（对指感知，默认）和 `vector`（关键向量匹配）
+- **三种优化器**：`adaptive`（对指感知，默认）、`vector`（关键向量匹配）和 `dexpilot`（自适应距离投影，用于稳定抓取）
 - **高精度对指**：自适应优化，精确的拇指-手指接触
 - **实时性能**：解析梯度 + NLopt SLSQP（~2ms/帧）
 - **多输入源**：Apple Vision Pro、Meta Quest 3、Noitom PNS-G 动捕手套、笔记本摄像头（MediaPipe）、录制数据回放
 
 ## 目录
 
+- [相关项目](#相关项目)
 - [支持的机器人](#支持的机器人)
 - [仓库结构](#仓库结构)
 - [安装](#安装)
@@ -101,12 +106,14 @@ example/config/
 │       ├── base_optimizer.py              # 基础优化器（FK/雅可比）
 │       ├── analytical_optimizer.py        # AdaptiveOptimizerAnalytical
 │       ├── key_vector_optimizer.py        # KeyVectorOptimizer
+│       ├── dexpilot_optimizer.py          # DexPilotOptimizer
 │       ├── robot_configs.py               # 机器人 link/URDF 配置
 │       └── utils.py                       # TimingStats, LPFilter, Huber 损失
 ├── example/
 │   ├── teleop_sim.py                      # MuJoCo 仿真示例
 │   ├── teleop_real.py                     # 真机控制
 │   ├── input/                             # 输入设备模块
+│   │   ├── cli.py                         # 共享的 --input 与各设备参数
 │   │   ├── landmark_utils.py              # 共享 MediaPipe 关键点处理
 │   │   ├── camera.py / video.py / ...     # 各输入设备
 │   │   └── noitom.py                      # Noitom PNS-G 手套输入
@@ -114,19 +121,20 @@ example/config/
 │   │   ├── real/                          # 真机驱动 (drivers_wuji.py, drivers_shadow.py, ...)
 │   │   └── sim/                           # MuJoCo 仿真 qpos 映射 (mujoco_output.py)
 │   ├── test/                              # 调试与可视化工具
-│   │   ├── debug_skeleton.py              # 三骨架对比查看器
-│   │   └── calibrate_scaling.py           # 通用 segment_scaling 标定
+│   │   ├── debug_skeleton.py              # 骨架对比查看器
+│   │   ├── calibrate.py                   # 统一标定入口
+│   │   ├── calibrate_rotation.py          # mediapipe_rotation 标定
+│   │   ├── calibrate_scaling.py           # segment_scaling 标定
+│   │   └── calibrate_pinch_scaling.py     # pinch_scaling 标定
 │   ├── config/
 │   │   ├── adaptive/                      # AdaptiveOptimizerAnalytical 配置
 │   │   │   ├── avp/                       # Apple Vision Pro
 │   │   │   ├── quest3/                    # Meta Quest 3
 │   │   │   ├── mediapipe/                 # MediaPipe（摄像头/视频/回放）
+│   │   │   ├── pico4/                     # Pico 4
 │   │   │   └── noitom/                    # Noitom PNS-G 手套
-│   │   └── vector/                        # KeyVectorOptimizer 配置
-│   │       ├── avp/
-│   │       ├── quest3/
-│   │       ├── mediapipe/
-│   │       └── noitom/
+│   │   ├── vector/                        # KeyVectorOptimizer 配置（目录结构相同）
+│   │   └── dexpilot/                      # DexPilotOptimizer 配置（目录结构相同）
 │   └── data/                              # 示例录制数据
 ├── assets/                                # 机器人 URDF / MuJoCo 资源
 └── requirements.txt
@@ -166,7 +174,7 @@ pip install -e .
 
 **macOS MuJoCo**：仿真脚本使用 `mjpython` 代替 `python`：
 ```bash
-mjpython example/teleop_sim.py --video example/data/right.mp4
+mjpython example/teleop_sim.py --input video --file example/data/right.mp4
 ```
 
 ## 快速开始
@@ -182,10 +190,10 @@ mjpython example/teleop_sim.py --video example/data/right.mp4
 cd example
 
 # 运行仓库自带示例视频（adaptive 优化器，默认）
-python teleop_sim.py --video data/right.mp4 --robot shadow --hand right
+python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right
 
 # Gaia Hand20（支持左右手）
-python teleop_sim.py --video data/right.mp4 --robot gaia --hand right
+python teleop_sim.py --input video --file data/right.mp4 --robot gaia --hand right
 
 # Pico 4 直连模式（PC 广播自身地址并接收头显连接）
 python teleop_sim.py --input pico4 --pico4-mode direct --robot gaia --hand right
@@ -194,28 +202,31 @@ python teleop_sim.py --input pico4 --pico4-mode direct --robot gaia --hand right
 python teleop_sim.py --input pico4 --robot gaia --hand right
 
 # 切换到 KeyVector 优化器
-python teleop_sim.py --video data/right.mp4 --robot shadow --hand right --optimizer vector
+python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right --optimizer vector
+
+# 切换到 DexPilot 优化器
+python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right --optimizer dexpilot
 
 # 回放可选示例录制数据
-python teleop_sim.py --play data/avp1.pkl --robot shadow --hand right
+python teleop_sim.py --input replay --file data/avp1.pkl --robot shadow --hand right
 
 # 笔记本摄像头实时遥操作（MediaPipe）
 python teleop_sim.py --input camera --robot shadow --hand right
 
 # Vision Pro 实时遥操作
-python teleop_sim.py --input visionpro --robot shadow --ip <vision-pro-ip> --hand right
+python teleop_sim.py --input avp --avp-ip <vision-pro-ip> --robot shadow --hand right
 
 # Quest 3 实时遥操作（通过 Hand Tracking Streamer）
-python teleop_sim.py --input quest3 --robot shadow --port 9000 --hand right
+python teleop_sim.py --input quest3 --quest3-port 9000 --robot shadow --hand right
 
 # RealSense 实时遥操作
-python teleop_sim.py --realsense --robot shadow --hand right --show-video
+python teleop_sim.py --input realsense --show-video --robot shadow --hand right
 
 # Noitom PNS-G 手套
-python teleop_sim.py --input noitom --robot inspire --hand right --noitom-local-ip 192.168.5.25
+python teleop_sim.py --input noitom --noitom-local-ip 192.168.5.25 --robot inspire --hand right
 
 # 回放你自己的录制文件（.pkl）
-python teleop_sim.py --play path/to/record.pkl --robot shadow --hand right
+python teleop_sim.py --input replay --file path/to/record.pkl --robot shadow --hand right
 ```
 
 ### 真机控制
@@ -226,10 +237,10 @@ python teleop_sim.py --play path/to/record.pkl --robot shadow --hand right
 cd example
 
 # Vision Pro -> Wuji Hand（adaptive）
-python teleop_real.py --robot wuji --input visionpro --ip <vision-pro-ip> --hand right
+python teleop_real.py --robot wuji --input avp --avp-ip <vision-pro-ip> --hand right
 
 # Vision Pro -> Wuji Hand（vector 优化器）
-python teleop_real.py --robot wuji --input visionpro --ip <vision-pro-ip> --hand right --optimizer vector
+python teleop_real.py --robot wuji --input avp --avp-ip <vision-pro-ip> --hand right --optimizer vector
 
 # Noitom PNS-G 手套 -> Inspire Hand
 python teleop_real.py --robot inspire --input noitom --hand right --noitom-local-ip 192.168.5.25
@@ -239,7 +250,10 @@ python teleop_real.py --robot gaia --input pico4 --hand right --pico4-mode relay
   --gaia-port /dev/ttyACM0
 
 # 回放可选示例录制数据 -> Wuji Hand
-python teleop_real.py --robot wuji --play data/avp1.pkl --hand right
+python teleop_real.py --robot wuji --input replay --file data/avp1.pkl --hand right
+
+# 同上，使用 DexPilot 优化器
+python teleop_real.py --robot wuji --input replay --file data/avp1.pkl --hand right --optimizer dexpilot
 
 # Linux USB 权限（Inspire / Gaia 示例）
 sudo chmod a+rw /dev/ttyUSB0
@@ -259,29 +273,48 @@ python -c "import hand; print('Gaia HandSDK OK')"
 
 ### 命令参考
 
+以下输入参数由 `teleop_sim.py`、`teleop_real.py`、`debug_skeleton.py` 和 `calibrate_*.py` 共用（定义在 `example/input/cli.py`）。
+
 #### 输入源
 
 | 选项 | 默认值 | 说明 |
 |------|--------|------|
-| `--input` | - | `teleop_sim.py`：`visionpro` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `mediapipe_replay` |
-| `--input` | - | `teleop_real.py`：`visionpro` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `mediapipe_replay` |
+| `--input` | `video`（sim）/ `replay`（real） | `avp` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `replay` |
+| `--file FILE` | `data/right.mp4`（video）/ `data/avp1.pkl`（replay） | `video` / `replay` 输入的文件 |
 | `--hand` | `right` | 手的方向（`left`/`right`） |
-| `--realsense` | 关闭 | `--input realsense` 的快捷方式 |
-| `--play FILE` | - | 回放录制（`--input mediapipe_replay` 的快捷方式） |
-| `--video FILE` | - | 视频文件输入（MediaPipe 手部检测） |
-| `--ip` | `192.168.50.127` | Vision Pro IP |
-| `--port` | `9000` | Quest 3 HTS 监听端口 |
-| `--protocol` | `udp` | Quest 3 HTS 传输协议（`udp`/`tcp`） |
+| `--show-video` | 关闭 | 显示 RGB / 关键点预览（相机类输入） |
+
+#### 设备连接
+
+只有 `--input` 所选设备的参数会生效。
+
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `--avp-ip` | `192.168.50.127` | Vision Pro IP |
+| `--quest3-port` | `9000` | Quest 3 HTS 监听端口 |
+| `--quest3-protocol` | `udp` | Quest 3 HTS 传输协议（`udp`/`tcp`） |
+| `--pico4-mode` | `relay` | `relay`（经 `input/pico4_daemon.py` 中继）或 `direct`（PC 作 TCP 服务端） |
+| `--pico4-relay-host` / `--pico4-relay-port` | `127.0.0.1` / `63902` | 中继模式：daemon 地址 |
+| `--pico4-port` / `--pico4-broadcast-port` | `63901` / `29888` | 直连模式：TCP 监听端口 / UDP 广播端口 |
 | `--noitom-local-ip` | `192.168.5.25` | Noitom：本机 IP |
 | `--noitom-local-port` | `8000` | Noitom：本机 UDP 端口 |
 | `--noitom-server-ip` | `192.168.5.33` | Noitom：Axis Studio IP（Windows） |
 | `--noitom-server-port` | `9000` | Noitom：Axis Studio 端口 |
 
+#### 回放与录制
+
+| 选项 | 默认值 | 说明 |
+|------|--------|------|
+| `--speed` | `1.0` | `video` / `replay` 播放速度 |
+| `--no-loop` | 关闭 | 播完即停，不循环 |
+| `--record` | 关闭 | 录制输入数据（仅 teleop 脚本） |
+| `--record-file FILE` | 自动生成 | 录制输出文件路径 |
+
 #### 优化器
 
 | 选项 | 默认值 | 说明 |
 |------|--------|------|
-| `--optimizer` | `adaptive` | 优化器类型：`adaptive` 或 `vector` |
+| `--optimizer` | `adaptive` | 优化器类型：`adaptive`、`vector` 或 `dexpilot` |
 | `--config` | 自动选择 | 配置文件（覆盖 `--robot` 和 `--optimizer`） |
 
 #### 灵巧手与输出
@@ -289,11 +322,6 @@ python -c "import hand; print('Gaia HandSDK OK')"
 | 选项 | 默认值 | 说明 |
 |------|--------|------|
 | `--robot` | `shadow`（sim）/ `wuji`（real） | 灵巧手类型；真机输出支持 `wuji`、`shadow`、`inspire` 和 `gaia` |
-| `--record` | - | 录制输入数据 |
-| `--output FILE` | - | 录制输出文件路径 |
-| `--show-video` | 关闭 | 显示 RGB / 关键点预览 |
-| `--speed` | `1.0` | 播放速度 |
-| `--no-loop` | - | 禁用回放循环 |
 | `--headless` | 关闭 | 无 GUI 运行仿真 |
 | `--save-sim FILE` | - | 保存离屏仿真视频 |
 | `--save-qpos FILE` | - | 保存目标 / 仿真 qpos 轨迹 |
@@ -302,9 +330,10 @@ python -c "import hand; print('Gaia HandSDK OK')"
 
 #### debug_skeleton.py
 
-在 MuJoCo 查看器中对比三套骨架，用于调试重定向问题：
+在 MuJoCo 查看器中对比四套骨架，用于调试重定向问题：
 
 - **蓝色**：原始 MediaPipe 骨架（坐标变换后，未缩放）
+- **黄色**：按 `pinch_scaling` 整体缩放后的骨架
 - **绿色**：缩放后的目标骨架（优化器的匹配目标）
 - **红色**：机器人 FK 骨架（重定向结果）
 
@@ -315,7 +344,7 @@ cd example
 python test/debug_skeleton.py --robot leap --input camera
 
 # 视频文件输入
-python test/debug_skeleton.py --robot leap --video data/right.mp4
+python test/debug_skeleton.py --robot leap --input video --file data/right.mp4
 
 # RealSense 输入
 python test/debug_skeleton.py --robot shadow --input realsense
@@ -324,8 +353,8 @@ python test/debug_skeleton.py --robot shadow --input realsense
 python test/debug_skeleton.py --robot shadow --input avp --avp-ip <vision-pro-ip>
 
 # 使用可选示例录制数据，对比两种优化器
-python test/debug_skeleton.py --robot shadow --play data/avp1.pkl --optimizer adaptive
-python test/debug_skeleton.py --robot shadow --play data/avp1.pkl --optimizer vector
+python test/debug_skeleton.py --robot shadow --input replay --file data/avp1.pkl --optimizer adaptive
+python test/debug_skeleton.py --robot shadow --input replay --file data/avp1.pkl --optimizer vector
 
 # Noitom PNS-G 手套
 python test/debug_skeleton.py --robot inspire --input noitom --noitom-local-ip 192.168.5.25
@@ -340,7 +369,7 @@ python test/debug_skeleton.py --robot sharpa --input realsense --hand right
 python test/debug_skeleton.py --robot sharpa --input avp --avp-ip 192.168.5.32 --hand right
 
 # 你自己的录制数据
-python test/debug_skeleton.py --robot shadow --play path/to/record.pkl
+python test/debug_skeleton.py --robot shadow --input replay --file path/to/record.pkl
 ```
 
 #### adaptive contact loss
@@ -361,10 +390,10 @@ L_contact = w_contact * alpha * ||thumb_tip - partner_tip||²
 cd example
 
 # RealSense 标定
-python test/calibrate_scaling.py --robot sharpa --input mediapipe
+python test/calibrate_scaling.py --robot sharpa --input realsense
 
 # 视频标定
-python test/calibrate_scaling.py --robot shadow --input mediapipe --video data/right.mp4
+python test/calibrate_scaling.py --robot shadow --input video --file data/right.mp4
 
 # Vision Pro 标定
 python test/calibrate_scaling.py --robot wuji --input avp --avp-ip 192.168.5.32
@@ -383,8 +412,8 @@ python test/calibrate_scaling.py --robot shadow --input quest3
 ```bash
 cd example
 
-python test/visualize_scaling.py --robot leap --video data/right.mp4 --hand right
-python test/visualize_scaling.py --robot allegro --play data/avp1.pkl --hand right
+python test/visualize_scaling.py --robot leap --input video --file data/right.mp4 --hand right
+python test/visualize_scaling.py --robot allegro --input replay --file data/avp1.pkl --hand right
 ```
 
 ## API 参考

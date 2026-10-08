@@ -1,0 +1,34 @@
+optimizer:
+  type: DexPilot
+  hand_side: right
+  maxeval: 50
+  ftol_abs: 0.0001
+robot:
+  type: wuji_hand
+  num_fingers: 5
+  wrist_link: right_palm_link
+  tip_links:
+  - right_finger1_tip_link
+  - right_finger2_tip_link
+  - right_finger3_tip_link
+  - right_finger4_tip_link
+  - right_finger5_tip_link
+  urdf_path: assets/wuji_hand/right.urdf
+retarget:
+  huber_delta: 3.0
+  norm_delta: 0.04
+  scaling: 1.0
+  project_dist: 0.03
+  escape_dist: 0.05
+  eta1: 0.0001
+  eta2: 0.03
+  lp_alpha: 0.4
+  mediapipe_rotation:
+    x: 0.0
+    y: -5.0
+    z: -20.0
+render:
+  camera:
+    azimuth: 180
+    elevation: -20
+    distance: 0.5
