@@ -609,8 +609,10 @@ class BaseOptimizer(ABC):
         tip_indices = [self.MP_TIP_INDICES[i] for i in self.mp_finger_indices]
 
         palm = keypoints_cm[mcp_indices] - wrist
-        if lateral_scaling != 1.0:
-            palm[:, lateral_axis] *= lateral_scaling
+        if lateral_scaling != 1.0 and nf > 1:
+            # Keep thumb lateral motion unchanged; scale only the four
+            # non-thumb finger MCP spans.
+            palm[1:, lateral_axis] *= lateral_scaling
         proximal = keypoints_cm[pip_indices] - keypoints_cm[mcp_indices]
         middle = keypoints_cm[dip_indices] - keypoints_cm[pip_indices]
         distal = keypoints_cm[tip_indices] - keypoints_cm[dip_indices]

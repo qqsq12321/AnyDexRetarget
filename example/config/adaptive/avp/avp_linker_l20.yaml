@@ -15,14 +15,15 @@ retarget:
   project_tip_dir: false
   w_full_hand: 1.0
   pinch_scaling: 1.0
-  alpha: 1.0
+  lateral_scaling: 0.7
+  alpha: 0.0
   w_contact: 6.0
   segment_scaling:
     thumb: [1.427, 1.53, 1.417]
-    index: [1.617, 1.624, 1.579]
-    middle: [1.58, 1.548, 1.47]
-    ring: [1.613, 1.613, 1.55]
-    pinky: [1.806, 1.821, 1.74]
+    index: [1.638, 1.091, 1.355, 1.067]
+    middle: [1.748, 0.98, 1.147, 1.04]
+    ring: [1.736, 1.114, 1.219, 1.074]
+    pinky: [1.825, 1.391, 1.781, 1.194]
 
   pinch_thresholds:
     index: {d1: 2.0, d2: 4.0}
