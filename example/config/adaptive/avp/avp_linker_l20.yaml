@@ -15,7 +15,7 @@ retarget:
   project_tip_dir: false
   w_full_hand: 1.0
   pinch_scaling: 1.0
-  alpha: 0.0
+  alpha: 1.0
   w_contact: 6.0
   segment_scaling:
     thumb: [1.427, 1.53, 1.417]

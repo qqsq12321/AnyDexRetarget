@@ -21,14 +21,16 @@ HAND_CONNECTIONS = [
 ]
 
 
-def landmarks_to_array(hand_landmarks, w: int, h: int, z_scale: float = 2.5) -> np.ndarray:
+def landmarks_to_array(hand_landmarks, w: int, h: int) -> np.ndarray:
     """Convert MediaPipe hand landmarks to a (21, 3) pixel-space array.
+
+    MediaPipe reports x and y normalized to the frame and z as relative depth
+    on roughly the same scale as x, so all three axes use the frame width.
 
     Args:
         hand_landmarks: MediaPipe hand landmarks object.
         w: Frame width in pixels.
         h: Frame height in pixels.
-        z_scale: Multiplier for z coordinate (default 2.5).
 
     Returns:
         (21, 3) float32 array in pixel coordinates.
@@ -39,20 +41,18 @@ def landmarks_to_array(hand_landmarks, w: int, h: int, z_scale: float = 2.5) -> 
     )
     kp[:, 0] *= w
     kp[:, 1] *= h
-    kp[:, 2] *= w * z_scale
+    kp[:, 2] *= w
     return kp
 
 
 def process_landmarks(
     kp: np.ndarray,
-    depth_scale: float = 1.25,
     reference_wrist_to_mid_mcp: float = REFERENCE_WRIST_TO_MIDDLE_MCP,
 ) -> np.ndarray:
-    """Full landmark post-processing: normalize and scale depth.
+    """Full landmark post-processing: center on the wrist and normalize scale.
 
     Args:
         kp: (21, 3) raw keypoints in pixel space.
-        depth_scale: Multiplier for z/depth axis (default 1.25).
         reference_wrist_to_mid_mcp: Reference wrist-to-middle-MCP distance.
 
     Returns:
@@ -63,9 +63,7 @@ def process_landmarks(
     if dist < 1e-6:
         return kp
     scale = reference_wrist_to_mid_mcp / dist
-    kp = kp * scale
-    kp[:, 2] *= depth_scale
-    return kp
+    return kp * scale
 
 
 def draw_skeleton(frame: np.ndarray, raw_lm, connections=None, color=(0, 255, 0)):

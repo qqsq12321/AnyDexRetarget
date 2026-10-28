@@ -35,8 +35,10 @@ from calibrate_scaling import (  # Reuse the existing input-device plumbing.
     ROBOT_NAME_MAP,
     _resolve_config_paths,
     _transform_input_keypoints,
+    add_calibration_input_args,
     create_input_device,
 )
+from input.cli import config_dir_for
 
 
 def _backup_config(config_path: Path) -> Path:
@@ -155,7 +157,7 @@ def _resolve_config(args) -> Path:
 
 def _resolve_config_batch(args) -> list[Path]:
     if args.all_robots:
-        config_dir = EXAMPLE_ROOT / f"config/adaptive/{args.input}"
+        config_dir = EXAMPLE_ROOT / f"config/adaptive/{config_dir_for(args.input)}"
         return sorted(config_dir.glob("*.yaml"))
     return [_resolve_config(args)]
 
@@ -171,29 +173,11 @@ def main() -> None:
     parser.add_argument("--all-robots", action="store_true", help="采一次张手并批量写入当前 input 的所有 adaptive YAML")
     parser.add_argument("--robot", default="wuji", choices=list(ROBOT_NAME_MAP.keys()))
     parser.add_argument("--hand", default="right", choices=["left", "right"])
-    parser.add_argument("--input", default="mediapipe", choices=["mediapipe", "noitom", "quest3", "avp", "pico4"])
-    parser.add_argument("--video", default=None, help="Video file for mediapipe input")
-    parser.add_argument("--show-video", action="store_true")
     parser.add_argument("--duration", type=float, default=3.0, help="张手采集时长（秒）")
     parser.add_argument("--pose-delay", type=float, default=2.0, help="开始采集前调整姿势时间（秒）")
     parser.add_argument("--write", action="store_true", help="写入推荐 pinch_scaling 到配置文件")
     parser.add_argument("--dry-run", action="store_true", help="只显示建议值，绝不写入")
-    # Noitom
-    parser.add_argument("--noitom-local-ip", default="0.0.0.0")
-    parser.add_argument("--noitom-local-port", type=int, default=8000)
-    parser.add_argument("--noitom-server-ip", default="192.168.5.33")
-    parser.add_argument("--noitom-server-port", type=int, default=9000)
-    # Quest3
-    parser.add_argument("--quest3-port", type=int, default=9000)
-    parser.add_argument("--quest3-protocol", default="udp", choices=["udp", "tcp"])
-    # Pico4
-    parser.add_argument("--pico4-mode", default="relay", choices=["relay", "direct"])
-    parser.add_argument("--pico4-relay-host", default="127.0.0.1")
-    parser.add_argument("--pico4-relay-port", type=int, default=63902)
-    parser.add_argument("--pico4-port", type=int, default=63901)
-    parser.add_argument("--pico4-broadcast-port", type=int, default=29888)
-    # AVP
-    parser.add_argument("--avp-ip", default="192.168.50.127")
+    add_calibration_input_args(parser)
     args = parser.parse_args()
 
     if args.write and args.dry_run:

@@ -34,7 +34,6 @@ class Realsense:
         width: int = 640,
         height: int = 480,
         fps: int = 30,
-        z_scale: float = 2.5,
         reference_wrist_to_mid_mcp: float = 0.09,
     ):
         if rs is None:
@@ -43,7 +42,6 @@ class Realsense:
         self.show_video = show_video
         self.frame_width = width
         self.frame_height = height
-        self.z_scale = z_scale
         self._reference_wrist_to_mid_mcp = reference_wrist_to_mid_mcp
 
         # Initialize RealSense pipeline (RGB stream only)
@@ -69,7 +67,7 @@ class Realsense:
 
         print(f"RealSense camera initialized")
         print(f"  Resolution: {width}x{height} @ {fps}fps")
-        print(f"  Hand side: {self.hand_side}, z_scale: {self.z_scale}")
+        print(f"  Hand side: {self.hand_side}")
 
     def get_fingers_data(self) -> dict:
         frames = self._pipeline.wait_for_frames()
@@ -91,18 +89,17 @@ class Realsense:
             ):
                 label = hand_cls.classification[0].label
                 if label == self._expected_mp_label:
-                    kp = landmarks_to_array(hand_lm, self.frame_width, self.frame_height, z_scale=self.z_scale)
+                    kp = landmarks_to_array(hand_lm, self.frame_width, self.frame_height)
                     raw_lm = [(lm.x, lm.y) for lm in hand_lm.landmark]
                     break
 
             if kp is None and results.multi_hand_landmarks:
-                kp = landmarks_to_array(results.multi_hand_landmarks[0], self.frame_width, self.frame_height, z_scale=self.z_scale)
+                kp = landmarks_to_array(results.multi_hand_landmarks[0], self.frame_width, self.frame_height)
                 raw_lm = [(lm.x, lm.y) for lm in results.multi_hand_landmarks[0].landmark]
 
         if kp is not None:
             kp = process_landmarks(
                 kp,
-                depth_scale=1.0,
                 reference_wrist_to_mid_mcp=self._reference_wrist_to_mid_mcp,
             )
             self._last_valid_kp = kp

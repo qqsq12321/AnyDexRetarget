@@ -43,8 +43,6 @@ def main():
     parser.add_argument("--output", type=str,
                         default=str(example_dir / "output" / "extracted_frames"),
                         help="提取帧的输出目录")
-    parser.add_argument("--depth-scale", type=float, default=1.25,
-                        help="深度缩放系数 (default: 1.25)")
     args = parser.parse_args()
 
     cap = cv2.VideoCapture(args.video)
@@ -135,7 +133,7 @@ def main():
 
                 raw_lm = [(lm.x, lm.y) for lm in chosen.landmark]
                 kp_raw = landmarks_to_array(chosen, frame_w, frame_h)
-                kp_processed = process_landmarks(kp_raw, args.depth_scale)
+                kp_processed = process_landmarks(kp_raw)
                 draw_skeleton(display, raw_lm)
 
             # 状态信息

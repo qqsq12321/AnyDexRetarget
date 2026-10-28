@@ -26,20 +26,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from anydexretarget import Retargeter
-from input.camera import Camera
-from input.mediapipe_replay import MediaPipeReplay
-from input.noitom import NoitomInput
-from input.pico4 import (
-    Pico4,
-    DEFAULT_RELAY_HOST as DEFAULT_PICO4_RELAY_HOST,
-    DEFAULT_RELAY_PORT as DEFAULT_PICO4_RELAY_PORT,
-    DEFAULT_DIRECT_PORT as DEFAULT_PICO4_PORT,
-    DEFAULT_UDP_BROADCAST_PORT as DEFAULT_PICO4_BROADCAST_PORT,
-)
-from input.quest3 import Quest3
-from input.realsense import Realsense
-from input.video import Video
-from input.visionpro import VisionPro
+from input.cli import add_input_args, config_dir_for, open_input
 
 
 from output.sim.mujoco_output import (
@@ -76,28 +63,9 @@ def _apply_camera_config(
 
 
 def run_teleop(
+    input_args: argparse.Namespace,
     hand_side: str = "right",
     config_path: str = "config/mediapipe/mediapipe_shadow_hand.yaml",
-    input_device_type: str = "video",
-    mediapipe_replay_path: str = "",
-    video_path: str = "data/right.mp4",
-    visionpro_ip: str = "192.168.50.127",
-    quest3_port: int = 9000,
-    quest3_protocol: str = "udp",
-    pico4_mode: str = "relay",
-    pico4_relay_host: str = DEFAULT_PICO4_RELAY_HOST,
-    pico4_relay_port: int = DEFAULT_PICO4_RELAY_PORT,
-    pico4_port: int = DEFAULT_PICO4_PORT,
-    pico4_broadcast_port: int = DEFAULT_PICO4_BROADCAST_PORT,
-    noitom_local_ip: str = "192.168.5.25",
-    noitom_local_port: int = 8000,
-    noitom_server_ip: str = "192.168.5.33",
-    noitom_server_port: int = 9000,
-    playback_speed: float = 1.0,
-    playback_loop: bool = True,
-    enable_recording: bool = False,
-    show_video: bool = False,
-    video_depth_scale: float = 1.25,
     headless: bool = False,
     output_video_path: str = "",
     output_qpos_path: str = "",
@@ -108,9 +76,16 @@ def run_teleop(
     camera_elevation: float | None = None,
     camera_distance: float | None = None,
 ):
-    """Run teleoperation with MuJoCo simulation."""
+    """Run teleoperation with MuJoCo simulation.
+
+    ``input_args`` holds the options registered by ``input.cli.add_input_args``.
+    """
     hand_side = hand_side.lower()
     assert hand_side in {"right", "left"}, "hand_side must be 'right' or 'left'"
+    input_device_type = input_args.input
+    playback_speed = input_args.speed
+    playback_loop = not input_args.no_loop
+    enable_recording = input_args.record
 
     config_file = Path(__file__).parent / config_path
     with open(config_file, "r", encoding="utf-8") as f:
@@ -183,55 +158,19 @@ def run_teleop(
             distance=camera_distance,
         )
 
-    device_map = {
-        "visionpro": lambda: VisionPro(ip=visionpro_ip),
-        "quest3": lambda: Quest3(port=quest3_port, protocol=quest3_protocol),
-        "pico4": lambda: Pico4(
-            mode=pico4_mode,
-            relay_host=pico4_relay_host,
-            relay_port=pico4_relay_port,
-            port=pico4_port,
-            broadcast_port=pico4_broadcast_port,
-        ),
-        "noitom": lambda: NoitomInput(
-            local_ip=noitom_local_ip,
-            local_port=noitom_local_port,
-            server_ip=noitom_server_ip,
-            server_port=noitom_server_port,
-        ),
-        "mediapipe_replay": lambda: MediaPipeReplay(
-            record_path=mediapipe_replay_path,
-            playback_speed=playback_speed,
-            loop=playback_loop,
-        ),
-        "camera": lambda: Camera(camera_id=0, show_preview=True),
-        "realsense": lambda: Realsense(hand_side=hand_side, show_video=show_video),
-        "video": lambda: Video(
-            video_path=video_path,
-            hand_side=hand_side,
-            show_video=show_video,
-            playback_speed=playback_speed,
-            loop=playback_loop,
-            depth_scale=video_depth_scale,
-        ),
-    }
-    if input_device_type not in device_map:
-        raise ValueError(f"Unknown input device type: {input_device_type}")
-    if input_device_type == "mediapipe_replay" and not mediapipe_replay_path:
-        raise ValueError("mediapipe_replay_path is required for mediapipe_replay mode")
     if input_device_type == "pico4":
-        if pico4_mode == "relay":
-            print(f"  Pico 4: relay mode {pico4_relay_host}:{pico4_relay_port}")
+        if input_args.pico4_mode == "relay":
+            print(f"  Pico 4: relay mode {input_args.pico4_relay_host}:{input_args.pico4_relay_port}")
         else:
             print(
-                f"  Pico 4: direct mode TCP {pico4_port}, "
-                f"UDP broadcast {pico4_broadcast_port}"
+                f"  Pico 4: direct mode TCP {input_args.pico4_port}, "
+                f"UDP broadcast {input_args.pico4_broadcast_port}"
             )
 
-    input_device = device_map[input_device_type]()
+    input_device = open_input(input_args, hand_side)
     retargeter = Retargeter.from_yaml(str(config_file), hand_side)
 
-    if input_device_type in ("mediapipe_replay", "video") and enable_recording:
+    if input_device_type in ("replay", "video") and enable_recording:
         print("Note: Recording disabled in replay/video mode")
         enable_recording = False
 
@@ -426,7 +365,7 @@ def run_teleop(
 
             if (
                 not synchronous_input
-                and input_device_type in ("video", "mediapipe_replay")
+                and input_device_type in ("video", "replay")
                 and not playback_loop
                 and getattr(input_device, "_finished", False)
             ):
@@ -465,8 +404,8 @@ def main():
     parser.add_argument("--config", type=str, default=None,
                         help="Path to YAML configuration file (overrides --robot and --optimizer)")
     parser.add_argument("--optimizer", type=str, default="adaptive",
-                        choices=["adaptive", "vector"],
-                        help="Optimizer type: adaptive (default) or vector (KeyVectorOptimizer)")
+                        choices=["adaptive", "vector", "dexpilot"],
+                        help="Optimizer type: adaptive (default), vector (KeyVectorOptimizer), or dexpilot (DexPilotOptimizer)")
     parser.add_argument("--robot", type=str, default="shadow",
                         choices=["shadow", "wuji", "allegro", "leap",
                                  "inspire", "ability", "svh", "rohand",
@@ -475,56 +414,7 @@ def main():
     parser.add_argument("--hand", type=str, default="right", choices=["left", "right"],
                         help="Hand side (default: right)")
 
-    parser.add_argument("--input", type=str, default=None,
-                        choices=["visionpro", "quest3", "pico4", "noitom", "mediapipe_replay", "camera", "realsense", "video"],
-                        help="Input device type")
-    parser.add_argument("--realsense", action="store_true",
-                        help="Use RealSense camera (shortcut for --input realsense)")
-    parser.add_argument("--show-video", action="store_true",
-                        help="Show video with MediaPipe landmarks overlay")
-    parser.add_argument("--video-depth-scale", type=float, default=1.25,
-                        help="Extra scale applied to MediaPipe z/depth for video input (default: 1.25)")
-
-    parser.add_argument("--play", type=str, default=None, metavar="FILE",
-                        help="Play MediaPipe recording file (shortcut for --input mediapipe_replay)")
-    parser.add_argument("--video", type=str, default=None, metavar="FILE",
-                        help="Play MP4/AVI video file with MediaPipe detection (shortcut for --input video)")
-
-    parser.add_argument("--ip", type=str, default="192.168.50.127",
-                        help="VisionPro IP address (default: 192.168.50.127)")
-    parser.add_argument("--port", type=int, default=9000,
-                        help="Quest 3 HTS listener port (default: 9000)")
-    parser.add_argument("--protocol", type=str, default="udp", choices=["udp", "tcp"],
-                        help="Quest 3 HTS transport protocol (default: udp)")
-    parser.add_argument("--pico4-mode", type=str, default="relay", choices=["relay", "direct"],
-                        help="Pico 4 input mode: relay daemon (default) or direct TCP server")
-    parser.add_argument("--pico4-relay-host", type=str, default=DEFAULT_PICO4_RELAY_HOST,
-                        help=f"Pico 4 relay daemon host (default: {DEFAULT_PICO4_RELAY_HOST})")
-    parser.add_argument("--pico4-relay-port", type=int, default=DEFAULT_PICO4_RELAY_PORT,
-                        help=f"Pico 4 relay daemon port (default: {DEFAULT_PICO4_RELAY_PORT})")
-    parser.add_argument("--pico4-port", type=int, default=DEFAULT_PICO4_PORT,
-                        help=f"Pico 4 direct-mode TCP listen port (default: {DEFAULT_PICO4_PORT})")
-    parser.add_argument("--pico4-broadcast-port", type=int, default=DEFAULT_PICO4_BROADCAST_PORT,
-                        help=f"Pico 4 direct-mode UDP broadcast port (default: {DEFAULT_PICO4_BROADCAST_PORT})")
-
-    parser.add_argument("--noitom-local-ip", type=str, default="192.168.5.25",
-                        help="Noitom: Linux IP，须与 Axis Studio 目标地址一致 (default: 192.168.5.25)")
-    parser.add_argument("--noitom-local-port", type=int, default=8000,
-                        help="Noitom: 本机 UDP 监听端口 (default: 8000)")
-    parser.add_argument("--noitom-server-ip", type=str, default="192.168.5.33",
-                        help="Noitom: Axis Studio 所在 Windows IP (default: 192.168.5.33)")
-    parser.add_argument("--noitom-server-port", type=int, default=9000,
-                        help="Noitom: Axis Studio BVH 广播端口 (default: 9000)")
-
-    parser.add_argument("--speed", type=float, default=1.0,
-                        help="Playback speed for replay mode (default: 1.0)")
-    parser.add_argument("--no-loop", action="store_true",
-                        help="Disable looping for replay/video mode")
-
-    parser.add_argument("--record", action="store_true",
-                        help="Record input data to file")
-    parser.add_argument("--output", type=str, default=None, metavar="FILE",
-                        help="Output file for recording (default: auto-generated)")
+    add_input_args(parser, default="video", recording=True)
 
     parser.add_argument("--headless", action="store_true",
                         help="Run without GUI viewer")
@@ -547,28 +437,6 @@ def main():
 
     args = parser.parse_args()
 
-    input_device_type = args.input
-    mediapipe_replay_path = ""
-    video_path = ""
-
-    if args.realsense:
-        input_device_type = "realsense"
-    elif args.video:
-        input_device_type = "video"
-        video_path = args.video
-    elif args.play:
-        input_device_type = "mediapipe_replay"
-        mediapipe_replay_path = args.play
-
-    if input_device_type is None:
-        input_device_type = "video"
-        video_path = "data/right.mp4"
-
-    if input_device_type == "mediapipe_replay" and not mediapipe_replay_path:
-        parser.error("--play FILE is required for mediapipe_replay mode")
-    if input_device_type == "video" and not video_path:
-        parser.error("--video FILE is required for video mode")
-
     config_path = args.config
     if config_path is None:
         robot_name_map = {
@@ -578,39 +446,14 @@ def main():
             "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand",
             "gaia": "gaia_hand20",
         }
-        input_to_dir = {
-            "quest3": "quest3",
-            "visionpro": "avp",
-            "noitom": "noitom",
-            "pico4": "pico4",
-        }
-        config_dir = input_to_dir.get(input_device_type, "mediapipe")
+        config_dir = config_dir_for(args.input)
         robot_file = robot_name_map.get(args.robot, args.robot)
         config_path = f"config/{args.optimizer}/{config_dir}/{config_dir}_{robot_file}.yaml"
 
     log = run_teleop(
+        input_args=args,
         hand_side=args.hand,
         config_path=config_path,
-        input_device_type=input_device_type,
-        mediapipe_replay_path=mediapipe_replay_path,
-        video_path=video_path,
-        visionpro_ip=args.ip,
-        quest3_port=args.port,
-        quest3_protocol=args.protocol,
-        pico4_mode=args.pico4_mode,
-        pico4_relay_host=args.pico4_relay_host,
-        pico4_relay_port=args.pico4_relay_port,
-        pico4_port=args.pico4_port,
-        pico4_broadcast_port=args.pico4_broadcast_port,
-        noitom_local_ip=args.noitom_local_ip,
-        noitom_local_port=args.noitom_local_port,
-        noitom_server_ip=args.noitom_server_ip,
-        noitom_server_port=args.noitom_server_port,
-        playback_speed=args.speed,
-        playback_loop=not args.no_loop,
-        enable_recording=args.record,
-        show_video=args.show_video,
-        video_depth_scale=args.video_depth_scale,
         headless=args.headless or args.save_sim is not None,
         output_video_path=args.save_sim or "",
         output_qpos_path=args.save_qpos or "",
@@ -623,8 +466,8 @@ def main():
     )
 
     if log is not None and len(log) > 0:
-        if args.output:
-            log_path = Path(args.output)
+        if args.record_file:
+            log_path = Path(args.record_file)
         else:
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             log_path = Path(__file__).parent / f"input_data_log_{timestamp}.pkl"

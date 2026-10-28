@@ -24,8 +24,8 @@ Examples:
     python test/calibrate_rotation.py --robot wuji --input pico4
     python test/calibrate_rotation.py --robot shadow --input pico4 --hand right
     python test/calibrate_rotation.py --robot gaia --input avp --avp-ip 192.168.5.32
-    python test/calibrate_rotation.py --robot wuji --input mediapipe --video data/right.mp4
-    python test/calibrate_rotation.py --robot wuji --input data/avp1.pkl --trust-pkl
+    python test/calibrate_rotation.py --robot wuji --input video --file data/right.mp4
+    python test/calibrate_rotation.py --robot wuji --input replay --file data/avp1.pkl --trust-pkl
 """
 
 from __future__ import annotations
@@ -51,17 +51,23 @@ from anydexretarget.mediapipe import apply_mediapipe_transformations
 
 # Reuse the device factory and capture prompts rather than duplicating them.
 from calibrate_scaling import (
+    CALIBRATION_INPUTS,
     FINGER_NAMES,
-    INPUT_TO_CONFIG_DIR,
     ROBOT_NAME_MAP,
     _pose_countdown,
     _robust_center,
     _wait_for_capture_start,
+    add_calibration_input_args,
     create_input_device,
 )
+from input.cli import config_dir_for, input_file
 
 MP_MCP_INDICES = [1, 5, 9, 13, 17]
 M_TO_CM = 100.0
+
+# A recording is fitted with the config of the device that produced it,
+# which is read off the file name (e.g. data/avp1.pkl -> avp).
+REPLAY_SOURCES = ("mediapipe", "noitom", "quest3", "avp", "pico4")
 
 
 def fit_rotation(human_roots: np.ndarray, robot_roots: np.ndarray):
@@ -206,16 +212,8 @@ def build_parser():
     )
     parser.add_argument("--robot", default="wuji", choices=sorted(ROBOT_NAME_MAP))
     parser.add_argument("--hand", default="right", choices=["left", "right"])
-    parser.add_argument(
-        "--input",
-        default="pico4",
-        help=("实时输入源 mediapipe/noitom/quest3/avp/pico4，"
-              "或直接传入 .pkl 文件路径"),
-    )
-    parser.add_argument("--video", default=None, help="Video path for --input mediapipe")
-    parser.add_argument("--frames", type=int, default=None, help="Use only the first N pickle frames")
-    parser.add_argument("--trust-pkl", action="store_true", help="Confirm the pickle is trusted")
-    parser.add_argument("--show-video", action="store_true")
+    parser.add_argument("--frames", type=int, default=None, help="Use only the first N replay frames")
+    parser.add_argument("--trust-pkl", action="store_true", help="Confirm the replay pickle is trusted")
     parser.add_argument("--duration", type=float, default=5.0, help="Capture seconds")
     parser.add_argument("--pose-delay", type=float, default=2.0, help="Seconds to settle before capture")
     parser.add_argument(
@@ -224,18 +222,7 @@ def build_parser():
              "and the robot thumb mount often differ by tens of degrees and "
              "drag the whole estimate off)",
     )
-    parser.add_argument("--noitom-local-ip", default="0.0.0.0")
-    parser.add_argument("--noitom-local-port", type=int, default=8000)
-    parser.add_argument("--noitom-server-ip", default="192.168.5.33")
-    parser.add_argument("--noitom-server-port", type=int, default=9000)
-    parser.add_argument("--quest3-port", type=int, default=9000)
-    parser.add_argument("--quest3-protocol", default="udp", choices=["udp", "tcp"])
-    parser.add_argument("--avp-ip", default="192.168.50.127")
-    parser.add_argument("--pico4-mode", default="relay", choices=["relay", "direct"])
-    parser.add_argument("--pico4-relay-host", default="127.0.0.1")
-    parser.add_argument("--pico4-relay-port", type=int, default=63902)
-    parser.add_argument("--pico4-port", type=int, default=63901)
-    parser.add_argument("--pico4-broadcast-port", type=int, default=29888)
+    add_calibration_input_args(parser, default="pico4", choices=(*CALIBRATION_INPUTS, "replay"))
     return parser
 
 
@@ -244,30 +231,24 @@ def main():
 
     robot_file = ROBOT_NAME_MAP.get(args.robot, args.robot)
     replay_path = None
-    input_value = args.input
-    if input_value.lower().endswith((".pkl", ".pickle")):
-        replay_path = Path(input_value)
+    if args.input == "replay":
+        replay_path = Path(input_file(args))
         if not replay_path.is_absolute():
             replay_path = EXAMPLE_ROOT / replay_path
         replay_path = replay_path.resolve()
         stem = replay_path.stem.lower()
-        source = next((name for name in INPUT_TO_CONFIG_DIR if name in stem), None)
-        if source is None:
-            names = "/".join(INPUT_TO_CONFIG_DIR)
+        config_dir = next((name for name in REPLAY_SOURCES if name in stem), None)
+        if config_dir is None:
             raise SystemExit(
-                f"无法从 pkl 文件名推断原始输入源；文件名需包含 {names} 之一"
+                f"无法从 pkl 文件名推断原始输入源；文件名需包含 {'/'.join(REPLAY_SOURCES)} 之一"
             )
     else:
-        source = input_value.lower()
-        if source not in INPUT_TO_CONFIG_DIR:
-            names = "/".join(INPUT_TO_CONFIG_DIR)
-            raise SystemExit(f"未知 --input {input_value!r}；应为 {names} 或 .pkl 路径")
+        config_dir = config_dir_for(args.input)
 
-    config_dir = INPUT_TO_CONFIG_DIR[source]
     config_file = EXAMPLE_ROOT / f"config/adaptive/{config_dir}/{config_dir}_{robot_file}.yaml"
 
     print(f"配置文件: {config_file}")
-    input_label = f"{replay_path}（原始输入源: {source}）" if replay_path else source
+    input_label = f"{replay_path}（原始输入源: {config_dir}）" if replay_path else args.input
     print(f"机器人:   {robot_file}    手: {args.hand}    输入: {input_label}")
 
     retargeter = Retargeter.from_yaml(str(config_file), args.hand)
@@ -286,7 +267,6 @@ def main():
             replay_path, args.hand, args.trust_pkl, args.frames
         )
     else:
-        args.input = source
         device = create_input_device(args)
         _wait_for_capture_start(
             device,

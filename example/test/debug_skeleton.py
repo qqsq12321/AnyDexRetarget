@@ -9,7 +9,7 @@ Shows four hand skeletons side-by-side in the MuJoCo viewer:
 
 Usage:
     python debug_skeleton.py --robot leap
-    python debug_skeleton.py --robot leap --video data/right.mp4
+    python debug_skeleton.py --robot leap --input video --file data/right.mp4
     python debug_skeleton.py --robot leap --input camera
 """
 
@@ -34,8 +34,7 @@ if str(EXAMPLE_ROOT) not in sys.path:
 from anydexretarget import Retargeter
 from anydexretarget.mediapipe import apply_mediapipe_transformations
 from anydexretarget.optimizer.base_optimizer import BaseOptimizer
-from input.noitom import NoitomInput
-from input.mediapipe_replay import MediaPipeReplay
+from input.cli import add_input_args, config_dir_for, open_input
 from output.sim.mujoco_output import (
     ROBOT_HAND_CONFIGS,
     map_retarget_qpos,
@@ -417,25 +416,9 @@ def main():
                  "linkerhand_l21", "linker_l20", "unitree_dex5", "sharpa", "gaia"],
                         help="Robot hand type (default: leap)")
     parser.add_argument("--hand", default="right", choices=["left", "right"])
-    parser.add_argument("--input", default="camera", choices=["camera", "video", "replay", "noitom", "realsense", "avp", "quest3", "pico4"])
-    parser.add_argument("--video", default="", help="Video file path")
-    parser.add_argument("--play", default="", help="Replay pickle path")
-    parser.add_argument("--noitom-local-ip", type=str, default="192.168.5.25")
-    parser.add_argument("--noitom-local-port", type=int, default=8000)
-    parser.add_argument("--noitom-server-ip", type=str, default="192.168.5.33")
-    parser.add_argument("--noitom-server-port", type=int, default=9000)
-    parser.add_argument("--avp-ip", type=str, default="192.168.50.127")
-    parser.add_argument("--quest3-port", type=int, default=9000)
-    parser.add_argument("--quest3-protocol", type=str, default="udp", choices=["udp", "tcp"])
-    parser.add_argument("--pico4-mode", type=str, default="relay", choices=["relay", "direct"])
-    parser.add_argument("--pico4-relay-host", type=str, default="127.0.0.1")
-    parser.add_argument("--pico4-relay-port", type=int, default=63902)
-    parser.add_argument("--pico4-port", type=int, default=63901)
-    parser.add_argument("--pico4-broadcast-port", type=int, default=29888)
-    parser.add_argument("--show-video", action="store_true")
-    parser.add_argument("--speed", type=float, default=1.0)
     parser.add_argument("--alpha", type=float, default=0.25,
                         help="Robot hand transparency (0=invisible, 1=opaque, default: 0.25)")
+    add_input_args(parser, default="camera")
     args = parser.parse_args()
 
     robot_name_map = {
@@ -446,8 +429,7 @@ def main():
         "gaia": "gaia_hand20",
     }
     robot_file = robot_name_map.get(args.robot, args.robot)
-    input_to_dir = {"noitom": "noitom", "avp": "avp", "quest3": "quest3", "pico4": "pico4"}
-    config_dir = input_to_dir.get(args.input, "mediapipe")
+    config_dir = config_dir_for(args.input)
     config_path = args.config if args.config else f"config/{args.optimizer}/{config_dir}/{config_dir}_{robot_file}.yaml"
     config_file = EXAMPLE_ROOT / config_path
     with open(config_file, 'r') as f:
@@ -495,66 +477,10 @@ def main():
     retargeter = Retargeter.from_yaml(str(config_file), args.hand)
     optimizer = retargeter.optimizer
 
-    # Initialize input device
-    if args.input == "noitom":
-        input_device = NoitomInput(
-            local_ip=args.noitom_local_ip,
-            local_port=args.noitom_local_port,
-            server_ip=args.noitom_server_ip,
-            server_port=args.noitom_server_port,
-        )
-        input_type = "noitom"
-    elif args.input == "realsense":
-        from input.realsense import Realsense
-        input_device = Realsense(hand_side=args.hand, show_video=args.show_video)
-        input_type = "realsense"
-    elif args.input == "avp":
-        from input.visionpro import VisionPro
-        input_device = VisionPro(ip=args.avp_ip)
-        input_type = "avp"
-    elif args.input == "quest3":
-        from input.quest3 import Quest3
-        input_device = Quest3(port=args.quest3_port, protocol=args.quest3_protocol)
-        input_type = "quest3"
-    elif args.input == "pico4":
-        from input.pico4 import Pico4
-        input_device = Pico4(
-            mode=args.pico4_mode,
-            relay_host=args.pico4_relay_host,
-            relay_port=args.pico4_relay_port,
-            port=args.pico4_port,
-            broadcast_port=args.pico4_broadcast_port,
-        )
-        input_type = "pico4"
-    elif args.input == "video" or args.video:
-        # OpenCV/MediaPipe are optional unless camera/video input is selected.
-        from input.video import Video
+    input_device = open_input(args, args.hand)
 
-        video_path = args.video or "data/right.mp4"
-        input_device = Video(
-            video_path=video_path,
-            hand_side=args.hand,
-            show_video=args.show_video,
-            playback_speed=args.speed,
-            loop=True,
-        )
-        input_type = "video"
-    elif args.input == "replay" or args.play:
-        input_device = MediaPipeReplay(
-            record_path=args.play,
-            playback_speed=args.speed,
-            loop=True,
-        )
-        input_type = "replay"
-    else:
-        # Keep debug geometry helpers importable in headless/test environments.
-        from input.camera import Camera
-
-        input_device = Camera(camera_id=0, show_preview=True)
-        input_type = "camera"
-
-    print(f"Input: {input_type}")
-    if input_type == "pico4":
+    print(f"Input: {args.input}")
+    if args.input == "pico4":
         if args.pico4_mode == "direct":
             print(f"Pico4 mode: direct (tcp={args.pico4_port}, udp_broadcast={args.pico4_broadcast_port})")
         else:
