@@ -4,7 +4,9 @@ Uses robust open-hand morphology calibration: robot link lengths are divided
 by median human segment lengths from a natural open-hand capture.
 
 Outputs recommended segment_scaling values and optionally writes them back to
-both Adaptive and Vector config YAML files.
+the Adaptive config YAML file. (The Vector optimizer now uses a single global
+``scaling_factor`` instead of per-vector scales, so it is tuned by hand, not
+by this tool.)
 
 Supported inputs: realsense, video (both use mediapipe configs), noitom, quest3, avp, pico4
 
@@ -14,7 +16,7 @@ Usage:
     python test/calibrate_scaling.py --robot wuji --input noitom
     python test/calibrate_scaling.py --robot wuji --input quest3
     python test/calibrate_scaling.py --robot wuji --input avp
-    python test/calibrate_scaling.py --robot wuji --input realsense --optimizer both --write
+    python test/calibrate_scaling.py --robot wuji --input realsense --write
 """
 
 import argparse
@@ -59,22 +61,11 @@ ROBOT_NAME_MAP = {
 # Live sources only: calibration captures a held pose, not a recording.
 CALIBRATION_INPUTS = ("realsense", "video", "avp", "quest3", "pico4", "noitom")
 
-# MediaPipe task_kp → (finger, level): level 0=PIP, 1=DIP, 2=TIP
-_KP_TO_FINGER_LEVEL = {
-    2: ("thumb",  0), 3: ("thumb",  1), 4: ("thumb",  2),
-    6: ("index",  0), 7: ("index",  1), 8: ("index",  2),
-    10: ("middle", 0), 11: ("middle", 1), 12: ("middle", 2),
-    14: ("ring",   0), 15: ("ring",   1), 16: ("ring",   2),
-    18: ("pinky",  0), 19: ("pinky",  1), 20: ("pinky",  2),
-}
 
-
-def _resolve_config_paths(args, robot_file):
-    """Return (adaptive_path, vector_path) as Path objects (may not exist)."""
+def _resolve_config_path(args, robot_file):
+    """Return the adaptive config Path for this robot/input (may not exist)."""
     config_dir = config_dir_for(args.input)
-    adaptive = EXAMPLE_ROOT / f"config/adaptive/{config_dir}/{config_dir}_{robot_file}.yaml"
-    vector   = EXAMPLE_ROOT / f"config/vector/{config_dir}/{config_dir}_{robot_file}.yaml"
-    return adaptive, vector
+    return EXAMPLE_ROOT / f"config/adaptive/{config_dir}/{config_dir}_{robot_file}.yaml"
 
 
 def _backup_config(config_path: Path):
@@ -112,74 +103,40 @@ def _write_adaptive(config_path: Path, result: dict, backup: bool = True):
         ryaml.dump(doc, f)
 
 
-def _write_vector(config_path: Path, result: dict, backup: bool = True):
-    """Update key_vectors[*].scale in a vector config YAML."""
-    if backup:
-        _backup_config(config_path)
-    ryaml = YAML()
-    ryaml.preserve_quotes = True
-    with open(config_path) as f:
-        doc = ryaml.load(f)
+def write_configs(args, robot_file, result, explicit_config_path=None):
+    """Write calibration result to the adaptive config file.
 
-    kv_list = doc["retarget"]["key_vectors"]
-    for entry in kv_list:
-        task_kp = int(entry.get("task_kp", -1))
-        mapping = _KP_TO_FINGER_LEVEL.get(task_kp)
-        if mapping is None:
-            continue
-        fname, level = mapping
-        if fname in result:
-            entry["scale"] = float(result[fname][level])
+    ``result`` holds per-segment phalanx ratios for adaptive ``segment_scaling``.
 
-    with open(config_path, "w") as f:
-        ryaml.dump(doc, f)
+    The Vector optimizer now uses a single global ``scaling_factor`` instead
+    of per-vector scales, so it is no longer written by this tool; tune it by
+    hand in the vector config YAML.
 
-
-def write_configs(args, robot_file, result, cumulative_result, explicit_config_path=None):
-    """Write calibration result to adaptive and/or vector config files.
-
-    The two optimizers scale different things, so they take different numbers.
-    ``result`` holds per-segment phalanx ratios for adaptive ``segment_scaling``;
-    ``cumulative_result`` holds origin-to-joint ratios for the vector
-    optimizer, whose ``key_vectors`` entries use ``origin_kp: 0`` and therefore
-    still scale wrist-anchored vectors.
-
-    Adaptive/vector paths are resolved automatically from --robot and --input,
-    then written according to --optimizer.
+    The adaptive path is resolved automatically from --robot and --input.
     """
-    optimizer_mode = getattr(args, "optimizer", "both")
-
-    adaptive_path, vector_path = _resolve_config_paths(args, robot_file)
-    targets = []
-    if optimizer_mode in ("adaptive", "both") and adaptive_path.exists():
-        targets.append(("adaptive", adaptive_path))
-    if optimizer_mode in ("vector", "both") and vector_path.exists():
-        targets.append(("vector", vector_path))
-
-    if not targets:
+    adaptive_path = _resolve_config_path(args, robot_file)
+    if not adaptive_path.exists():
         print("  未找到对应配置文件，跳过写入。")
         return
 
-    for opt_type, path in targets:
-        try:
-            if opt_type == "adaptive":
-                _write_adaptive(path, result, backup=True)
-            else:
-                _write_vector(path, cumulative_result, backup=True)
-            print(f"  已写入 ({opt_type}): {path}")
-        except Exception as e:
-            print(f"  写入失败 ({path}): {e}")
+    try:
+        _write_adaptive(adaptive_path, result, backup=True)
+        print(f"  已写入 (adaptive): {adaptive_path}")
+    except Exception as e:
+        print(f"  写入失败 ({adaptive_path}): {e}")
 
 
-def _write_single(config_path: Path, result: dict, cumulative_result: dict, args):
+def _write_single(config_path: Path, result: dict, args):
     """Write to a single explicitly-specified config file, auto-detecting type."""
     try:
         with open(config_path) as f:
             raw = yaml.safe_load(f)
         opt_type_str = raw.get("optimizer", {}).get("type", "")
         if "KeyVector" in opt_type_str:
-            _write_vector(config_path, cumulative_result, backup=True)
-            print(f"  已写入 (vector): {config_path}")
+            print(
+                f"  跳过 ({config_path}): vector 标定已移除（现在用单一全局 "
+                "scaling_factor，需手动调），请改用 adaptive 配置。"
+            )
         else:
             _write_adaptive(config_path, result, backup=True)
             print(f"  已写入 (adaptive): {config_path}")
@@ -490,10 +447,10 @@ def calibrate_one_robot(args, robot_file, open_kp):
     ``mediapipe_rotation`` before measuring.
 
     Returns:
-        (result, cumulative_result, fi_names, merged_fingers) or None when the
-        robot has no config for this input source.
+        (result, fi_names, merged_fingers) or None when the robot has no
+        config for this input source.
     """
-    adaptive_path, _ = _resolve_config_paths(args, robot_file)
+    adaptive_path = _resolve_config_path(args, robot_file)
     if not adaptive_path.exists():
         return None
 
@@ -506,17 +463,10 @@ def calibrate_one_robot(args, robot_file, open_kp):
         return retargeter._apply_rotation(kp) if retargeter.rotation_xyz else kp
 
     kp_open = rotated(open_kp)
-    (pip_robot, dip_robot, tip_robot), (rseg_pip, rseg_dip, rseg_tip) = \
-        get_robot_distances(optimizer)
-
-    def ratio(robot_d, human_d):
-        if robot_d and human_d and human_d > 1e-4:
-            return round(robot_d / human_d, 3)
-        return 1.0
+    _, (rseg_pip, rseg_dip, rseg_tip) = get_robot_distances(optimizer)
 
     wrist = kp_open[0]
     result = {}
-    cumulative_result = {}
     merged_fingers = []
     robot_roots_m = optimizer.finger_root_vectors * CM_TO_M
     for i, fi in enumerate(mp_fingers):
@@ -531,13 +481,8 @@ def calibrate_one_robot(args, robot_file, open_kp):
         result[fi_names[i]] = [palm] + scales
         if merged:
             merged_fingers.append(fi_names[i])
-        cumulative_result[fi_names[i]] = [
-            ratio(pip_robot[i], float(np.linalg.norm(kp_open[MP_PIP_INDICES[fi]] - wrist))),
-            ratio(dip_robot[i], float(np.linalg.norm(kp_open[MP_DIP_INDICES[fi]] - wrist))),
-            ratio(tip_robot[i], float(np.linalg.norm(kp_open[MP_TIP_INDICES[fi]] - wrist))),
-        ]
 
-    return result, cumulative_result, fi_names, merged_fingers
+    return result, fi_names, merged_fingers
 
 
 def run_batch_calibration(args):
@@ -566,7 +511,7 @@ def run_batch_calibration(args):
         if outcome is None:
             skipped.append(short_name)
             continue
-        result, cumulative_result, fi_names, merged_fingers = outcome
+        result, fi_names, merged_fingers = outcome
 
         print(f"\n--- {short_name} ({robot_file})")
         print(f"    {'手指':8s}  {'腕→MCP':>8s}  {'MCP→PIP':>8s}  {'PIP→DIP':>8s}  {'DIP→TIP':>8s}")
@@ -580,7 +525,7 @@ def run_batch_calibration(args):
         if args.dry_run:
             continue
         if args.write:
-            write_configs(args, robot_file, result, cumulative_result)
+            write_configs(args, robot_file, result)
             written.append(short_name)
 
     print(f"\n{'='*68}")
@@ -632,9 +577,6 @@ def main():
     parser.add_argument("--pose-delay", type=float, default=2.0,
                         help="按 Enter/空格/s 后留给调整姿势的时间（秒），默认 2")
     # Write-back options
-    parser.add_argument("--optimizer", default="both",
-                        choices=["adaptive", "vector", "both"],
-                        help="写入哪种配置文件（默认: both）")
     parser.add_argument("--write", action="store_true",
                         help="标定后直接写入配置文件，不询问")
     parser.add_argument("--dry-run", action="store_true",
@@ -734,11 +676,6 @@ def main():
               f"{fmt_cm(hseg_dip[i]):>8s}  {fmt_cm(hseg_tip[i]):>8s}")
 
     # ── Compute scaling ──────────────────────────────────────────────────────
-    def ratio(robot_d, human_d):
-        if robot_d and human_d and human_d > 1e-4:
-            return round(robot_d / human_d, 3)
-        return 1.0
-
     # segment_scaling scales every span of the chain independently, so each
     # factor is calibrated against its own robot link: the wrist->MCP factor
     # stretches the palm, the other three the phalanges.
@@ -758,16 +695,6 @@ def main():
 
     result = {name: list(vals) for name, vals in open_result.items()}
 
-    # Cumulative ratios are no longer what segment_scaling means, but they
-    # still make a useful sanity check on overall reach.
-    cumulative_result = {}
-    for i, fname in enumerate(fi_names):
-        cumulative_result[fname] = [
-            ratio(pip_robot[i], pip_human[i]),
-            ratio(dip_robot[i], dip_human[i]),
-            ratio(tip_robot[i], tip_human[i]),
-        ]
-
     print(f"\n{'='*68}")
     print(f"标定结果")
     print(f"{'='*68}")
@@ -776,11 +703,6 @@ def main():
     print(f"  {'手指':8s}  {'腕→MCP':>8s}  {'MCP→PIP':>8s}  {'PIP→DIP':>8s}  {'DIP→TIP':>8s}")
     for fname, vals in result.items():
         print(f"  {fname:8s}  " + "  ".join(f"{x:>8.3f}" for x in vals))
-
-    print(f"\n  累计距离 ratio（仅供参考，不再用于配置）:")
-    print(f"  {'手指':8s}  {'o→L3':>6s}  {'L3→L4':>6s}  {'L4→tip':>6s}")
-    for fname, vals in cumulative_result.items():
-        print(f"  {fname:8s}  {vals[0]:>6.3f}  {vals[1]:>6.3f}  {vals[2]:>6.3f}")
 
     print(f"\n复制以下内容到配置文件的 segment_scaling 部分:")
     print("  segment_scaling:")
@@ -791,26 +713,19 @@ def main():
     print(f"\n{'='*68}")
     if args.write:
         print("写入配置文件...")
-        write_configs(args, robot_file, result, cumulative_result)
+        write_configs(args, robot_file, result)
     else:
-        # Show which files would be written
-        adaptive_path, vector_path = _resolve_config_paths(args, robot_file)
-        targets_info = []
-        if args.optimizer in ("adaptive", "both") and adaptive_path.exists():
-            targets_info.append(str(adaptive_path))
-        if args.optimizer in ("vector", "both") and vector_path.exists():
-            targets_info.append(str(vector_path))
-
-        if targets_info:
+        # Show which file would be written
+        adaptive_path = _resolve_config_path(args, robot_file)
+        if adaptive_path.exists():
             print("目标配置文件:")
-            for p in targets_info:
-                print(f"  {p}")
+            print(f"  {adaptive_path}")
             if args.dry_run:
                 print("dry-run：仅显示建议值，未写入任何配置。")
             else:
                 answer = input("\n是否写入？[y=写入 / n=跳过]: ").strip().lower()
                 if answer == "y":
-                    write_configs(args, robot_file, result, cumulative_result)
+                    write_configs(args, robot_file, result)
                 else:
                     print("已跳过写入。")
         else:

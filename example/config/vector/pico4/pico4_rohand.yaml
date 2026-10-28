@@ -11,41 +11,28 @@ retarget:
   norm_delta: 0.04
   lp_alpha: 0.4
 
+  scaling_factor: 0.861
   key_vectors:
     # thumb
-  - {origin: base_link, task: th_root_link, origin_kp: 0, task_kp: 2, scale: 0.552}
-  - {origin: base_link, task: th_proximal_link, origin_kp: 0, task_kp: 3, scale: 
-      0.778}
-  - {origin: base_link, task: th_distal_link, origin_kp: 0, task_kp: 4, scale: 
-      1.0}
+  - {origin: base_link, task: th_root_link, origin_kp: 0, task_kp: 2}
+  - {origin: base_link, task: th_proximal_link, origin_kp: 0, task_kp: 3}
+  - {origin: base_link, task: th_distal_link, origin_kp: 0, task_kp: 4}
     # index
-  - {origin: base_link, task: if_slider_abpart_link, origin_kp: 0, task_kp: 6, 
-      scale: 0.866}
-  - {origin: base_link, task: if_proximal_link, origin_kp: 0, task_kp: 7, scale: 
-      0.807}
-  - {origin: base_link, task: if_distal_link, origin_kp: 0, task_kp: 8, scale: 
-      0.924}
+  - {origin: base_link, task: if_slider_abpart_link, origin_kp: 0, task_kp: 6}
+  - {origin: base_link, task: if_proximal_link, origin_kp: 0, task_kp: 7}
+  - {origin: base_link, task: if_distal_link, origin_kp: 0, task_kp: 8}
     # middle
-  - {origin: base_link, task: mf_slider_abpart_link, origin_kp: 0, task_kp: 10, 
-      scale: 0.838}
-  - {origin: base_link, task: mf_proximal_link, origin_kp: 0, task_kp: 11, scale: 
-      0.774}
-  - {origin: base_link, task: mf_distal_link, origin_kp: 0, task_kp: 12, scale: 
-      0.899}
+  - {origin: base_link, task: mf_slider_abpart_link, origin_kp: 0, task_kp: 10}
+  - {origin: base_link, task: mf_proximal_link, origin_kp: 0, task_kp: 11}
+  - {origin: base_link, task: mf_distal_link, origin_kp: 0, task_kp: 12}
     # ring
-  - {origin: base_link, task: rf_slider_abpart_link, origin_kp: 0, task_kp: 14, 
-      scale: 0.855}
-  - {origin: base_link, task: rf_proximal_link, origin_kp: 0, task_kp: 15, scale: 
-      0.803}
-  - {origin: base_link, task: rf_distal_link, origin_kp: 0, task_kp: 16, scale: 
-      0.917}
+  - {origin: base_link, task: rf_slider_abpart_link, origin_kp: 0, task_kp: 14}
+  - {origin: base_link, task: rf_proximal_link, origin_kp: 0, task_kp: 15}
+  - {origin: base_link, task: rf_distal_link, origin_kp: 0, task_kp: 16}
     # pinky
-  - {origin: base_link, task: lf_slider_abpart_link, origin_kp: 0, task_kp: 18, 
-      scale: 0.965}
-  - {origin: base_link, task: lf_proximal_link, origin_kp: 0, task_kp: 19, scale: 
-      0.919}
-  - {origin: base_link, task: lf_distal_link, origin_kp: 0, task_kp: 20, scale: 
-      1.012}
+  - {origin: base_link, task: lf_slider_abpart_link, origin_kp: 0, task_kp: 18}
+  - {origin: base_link, task: lf_proximal_link, origin_kp: 0, task_kp: 19}
+  - {origin: base_link, task: lf_distal_link, origin_kp: 0, task_kp: 20}
 
   mediapipe_rotation:
     x: 150.0

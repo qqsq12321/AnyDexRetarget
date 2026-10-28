@@ -10,47 +10,46 @@ retarget:
   huber_delta: 2.0
   norm_delta: 0.04
   lp_alpha: 0.4
+  scaling_factor: 1.40
+
+  # Pinch contact: pulls the thumb tip and the closest finger tip together
+  # once they are within d2 (cm) of each other, so a pinch actually closes
+  # instead of leaving a gap between the fingertip surfaces. tip_offset
+  # moves the contact point from the GEORT distal link origin (at the
+  # DIP/IP joint) to the true fingertip surface -- same values as
+  # ROBOT_CONFIGS['linker_l20']['tip_offsets'] in robot_configs.py.
+  w_contact: 0.0  # disabled
+  # contact:
+  #   thumb_tip_link: thumb_distal
+  #   thumb_tip_kp: 4
+  #   thumb_tip_offset: [-0.0110, 0.0, 0.0277]
+  #   fingers:
+  #     - {tip_link: index_distal, tip_kp: 8, tip_offset: [-0.0135, 0.0, 0.0188], d1: 2.0, d2: 4.0}
+  #     - {tip_link: middle_distal, tip_kp: 12, tip_offset: [-0.0135, 0.0, 0.0188], d1: 2.0, d2: 4.0}
+  #     - {tip_link: ring_distal, tip_kp: 16, tip_offset: [-0.0135, 0.0, 0.0188], d1: 2.0, d2: 4.0}
+  #     - {tip_link: pinky_distal, tip_kp: 20, tip_offset: [-0.0135, 0.0, 0.0188], d1: 2.0, d2: 4.0}
+
   key_vectors:
     # thumb
-  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2, scale: 
-      1.261}
-  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 3, scale: 
-      1.176}
-  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 4, 
-      task_offset: [-0.0110, 0.0, 0.0277], scale: 1.109}
+  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2}
+  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 4}
     # index
-  - {origin: hand_base_link, task: index_middle, origin_kp: 0, task_kp: 6, scale: 
-      1.486}
-  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 7, scale: 
-      1.475}
-  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 8, 
-      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.408}
+  - {origin: hand_base_link, task: index_middle, origin_kp: 0, task_kp: 6}
+  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 8}
     # middle
-  - {origin: hand_base_link, task: middle_middle, origin_kp: 0, task_kp: 10, 
-      scale: 1.489}
-  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 11, 
-      scale: 1.44}
-  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 12, 
-      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.374}
+  - {origin: hand_base_link, task: middle_middle, origin_kp: 0, task_kp: 10}
+  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 12}
     # ring
-  - {origin: hand_base_link, task: ring_middle, origin_kp: 0, task_kp: 14, scale: 
-      1.533}
-  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 15, scale: 
-      1.485}
-  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 16, 
-      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.416}
+  - {origin: hand_base_link, task: ring_middle, origin_kp: 0, task_kp: 14}
+  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 16}
     # pinky
-  - {origin: hand_base_link, task: pinky_middle, origin_kp: 0, task_kp: 18, 
-      scale: 1.689}
-  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 19, 
-      scale: 1.702}
-  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 20, 
-      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.615}
+  - {origin: hand_base_link, task: pinky_middle, origin_kp: 0, task_kp: 18}
+  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 20}
 
   mediapipe_rotation:
-    x: -7.0
+    x: -10.0
     y: 0.0
-    z: -100.0
+    z: -10.0
 
 render:
   camera:

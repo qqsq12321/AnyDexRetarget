@@ -13,27 +13,28 @@ retarget:
   norm_delta: 0.04
   lp_alpha: 0.4
 
+  scaling_factor: 1.106
   key_vectors:
     # thumb (thumb)
-    - {origin: right_base_link, task: right_thumb_link_3,    origin_kp: 0, task_kp:  2, scale: 1.051}
-    - {origin: right_base_link, task: right_thumb_link_4,    origin_kp: 0, task_kp:  3, scale: 1.026}
-    - {origin: right_base_link, task: right_thumb_tip, origin_kp: 0, task_kp:  4, scale: 1.024}
+  - {origin: right_base_link, task: right_thumb_link_3, origin_kp: 0, task_kp: 2}
+  - {origin: right_base_link, task: right_thumb_link_4, origin_kp: 0, task_kp: 3}
+  - {origin: right_base_link, task: right_thumb_tip, origin_kp: 0, task_kp: 4}
     # index (index)
-    - {origin: right_base_link, task: right_index_link_3,    origin_kp: 0, task_kp:  6, scale: 1.096}
-    - {origin: right_base_link, task: right_index_link_4,    origin_kp: 0, task_kp:  7, scale: 1.13}
-    - {origin: right_base_link, task: right_index_tip, origin_kp: 0, task_kp:  8, scale: 1.155}
+  - {origin: right_base_link, task: right_index_link_3, origin_kp: 0, task_kp: 6}
+  - {origin: right_base_link, task: right_index_link_4, origin_kp: 0, task_kp: 7}
+  - {origin: right_base_link, task: right_index_tip, origin_kp: 0, task_kp: 8}
     # middle (middle)
-    - {origin: right_base_link, task: right_middle_link_3,    origin_kp: 0, task_kp: 10, scale: 1.053}
-    - {origin: right_base_link, task: right_middle_link_4,    origin_kp: 0, task_kp: 11, scale: 1.065}
-    - {origin: right_base_link, task: right_middle_tip, origin_kp: 0, task_kp: 12, scale: 1.091}
+  - {origin: right_base_link, task: right_middle_link_3, origin_kp: 0, task_kp: 10}
+  - {origin: right_base_link, task: right_middle_link_4, origin_kp: 0, task_kp: 11}
+  - {origin: right_base_link, task: right_middle_tip, origin_kp: 0, task_kp: 12}
     # ring (ring)
-    - {origin: right_base_link, task: right_ring_link_3,    origin_kp: 0, task_kp: 14, scale: 1.075}
-    - {origin: right_base_link, task: right_ring_link_4,    origin_kp: 0, task_kp: 15, scale: 1.094}
-    - {origin: right_base_link, task: right_ring_tip, origin_kp: 0, task_kp: 16, scale: 1.12}
+  - {origin: right_base_link, task: right_ring_link_3, origin_kp: 0, task_kp: 14}
+  - {origin: right_base_link, task: right_ring_link_4, origin_kp: 0, task_kp: 15}
+  - {origin: right_base_link, task: right_ring_tip, origin_kp: 0, task_kp: 16}
     # pinky (little)
-    - {origin: right_base_link, task: right_little_link_3,    origin_kp: 0, task_kp: 18, scale: 1.145}
-    - {origin: right_base_link, task: right_little_link_4,    origin_kp: 0, task_kp: 19, scale: 1.22}
-    - {origin: right_base_link, task: right_little_tip, origin_kp: 0, task_kp: 20, scale: 1.246}
+  - {origin: right_base_link, task: right_little_link_3, origin_kp: 0, task_kp: 18}
+  - {origin: right_base_link, task: right_little_link_4, origin_kp: 0, task_kp: 19}
+  - {origin: right_base_link, task: right_little_tip, origin_kp: 0, task_kp: 20}
 
   mediapipe_rotation:
     x: -5.0
