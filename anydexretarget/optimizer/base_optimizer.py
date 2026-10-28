@@ -419,16 +419,25 @@ class BaseOptimizer(ABC):
             Optimizer instance
         """
         from .analytical_optimizer import AdaptiveOptimizerAnalytical
+        from .key_vector_optimizer import KeyVectorOptimizer
+        from .dexpilot_optimizer import DexPilotOptimizer
 
         opt_type = config.get('optimizer', {}).get('type', 'AdaptiveOptimizerAnalytical')
 
-        if opt_type == 'AdaptiveOptimizerAnalytical':
-            return AdaptiveOptimizerAnalytical(config)
-        elif opt_type == 'KeyVectorOptimizer':
-            from .key_vector_optimizer import KeyVectorOptimizer
-            return KeyVectorOptimizer(config)
+        # Support both full and simplified type names
+        type_mapping = {
+            'AdaptiveOptimizerAnalytical': AdaptiveOptimizerAnalytical,
+            'Adaptive': AdaptiveOptimizerAnalytical,
+            'KeyVectorOptimizer': KeyVectorOptimizer,
+            'KeyVector': KeyVectorOptimizer,
+            'DexPilotOptimizer': DexPilotOptimizer,
+            'DexPilot': DexPilotOptimizer,
+        }
+
+        if opt_type in type_mapping:
+            return type_mapping[opt_type](config)
         else:
-            raise ValueError(f"Unknown optimizer type: {opt_type}")
+            raise ValueError(f"Unknown optimizer type: {opt_type}. Supported types: {list(type_mapping.keys())}")
 
     @abstractmethod
     def solve(
@@ -600,8 +609,10 @@ class BaseOptimizer(ABC):
         tip_indices = [self.MP_TIP_INDICES[i] for i in self.mp_finger_indices]
 
         palm = keypoints_cm[mcp_indices] - wrist
-        if lateral_scaling != 1.0:
-            palm[:, lateral_axis] *= lateral_scaling
+        if lateral_scaling != 1.0 and nf > 1:
+            # Keep thumb lateral motion unchanged; scale only the four
+            # non-thumb finger MCP spans.
+            palm[1:, lateral_axis] *= lateral_scaling
         proximal = keypoints_cm[pip_indices] - keypoints_cm[mcp_indices]
         middle = keypoints_cm[dip_indices] - keypoints_cm[pip_indices]
         distal = keypoints_cm[tip_indices] - keypoints_cm[dip_indices]

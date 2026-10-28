@@ -12,37 +12,40 @@ retarget:
   lp_alpha: 0.4
   key_vectors:
     # thumb
-  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2, scale: 1.181}
-  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 3,
-    scale: 1.313}
-  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 4, task_offset: [-0.0110, 0.0, 0.0277], scale: 1.5}
+  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2, scale: 
+      1.261}
+  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 3, scale: 
+      1.176}
+  - {origin: hand_base_link, task: thumb_distal, origin_kp: 0, task_kp: 4, 
+      task_offset: [-0.0110, 0.0, 0.0277], scale: 1.109}
     # index
-  - {origin: hand_base_link, task: index_middle, origin_kp: 0, task_kp: 6,
-    scale: 1.331}
-  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 7,
-    scale: 1.412}
-  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 8, task_offset: [-0.0135, 0.0, 0.0188], scale: 1.367}
+  - {origin: hand_base_link, task: index_middle, origin_kp: 0, task_kp: 6, scale: 
+      1.486}
+  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 7, scale: 
+      1.475}
+  - {origin: hand_base_link, task: index_distal, origin_kp: 0, task_kp: 8, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.408}
     # middle
-  - {origin: hand_base_link, task: middle_middle, origin_kp: 0, task_kp: 10,
-    scale: 1.375}
-  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 11,
-    scale: 1.414}
-  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 12, task_offset: [-0.0135, 0.0, 0.0188],
-    scale: 1.366}
+  - {origin: hand_base_link, task: middle_middle, origin_kp: 0, task_kp: 10, 
+      scale: 1.489}
+  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 11, 
+      scale: 1.44}
+  - {origin: hand_base_link, task: middle_distal, origin_kp: 0, task_kp: 12, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.374}
     # ring
-  - {origin: hand_base_link, task: ring_middle, origin_kp: 0, task_kp: 14,
-    scale: 1.397}
-  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 15,
-    scale: 1.451}
-  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 16, task_offset: [-0.0135, 0.0, 0.0188],
-    scale: 1.401}
+  - {origin: hand_base_link, task: ring_middle, origin_kp: 0, task_kp: 14, scale: 
+      1.533}
+  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 15, scale: 
+      1.485}
+  - {origin: hand_base_link, task: ring_distal, origin_kp: 0, task_kp: 16, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.416}
     # pinky
-  - {origin: hand_base_link, task: pinky_middle, origin_kp: 0, task_kp: 18,
-    scale: 1.45}
-  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 19,
-    scale: 1.589}
-  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 20, task_offset: [-0.0135, 0.0, 0.0188],
-    scale: 1.536}
+  - {origin: hand_base_link, task: pinky_middle, origin_kp: 0, task_kp: 18, 
+      scale: 1.689}
+  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 19, 
+      scale: 1.702}
+  - {origin: hand_base_link, task: pinky_distal, origin_kp: 0, task_kp: 20, 
+      task_offset: [-0.0135, 0.0, 0.0188], scale: 1.615}
 
   mediapipe_rotation:
     x: -7.0

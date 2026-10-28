@@ -85,7 +85,7 @@ _L20_FOUR_FINGER_MCP_PITCH_OFFSET_RAD = 0.0
 
 # Extra real-hand qpos offsets applied before qpos->register normalization.
 _L20_JOINT_OFFSETS_RAD = np.array([
-    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.15, 0.0, 0.0,
     0.0, -0.15235988, 0.0,
     0.0, -0.15235988, 0.0,
     0.0, -0.15235988, 0.0,
@@ -239,7 +239,10 @@ class LinkerL20Output(HandOutput):
         open_on_exit: bool = _L20_OPEN_ON_EXIT,
         print_registers: bool = _L20_PRINT_REGISTERS,
         dry_run: bool = _L20_DRY_RUN,
+        transport: LinkerL20RS485 | None = None,
     ):
+        self._slave_id = int(slave_id)
+        self._owns_hand = transport is None
         self._open_on_exit = bool(open_on_exit)
         self._print_registers = bool(print_registers)
         self._dry_run = bool(dry_run)
@@ -252,25 +255,32 @@ class LinkerL20Output(HandOutput):
             self._hand = None
             print("Linker L20 dry-run enabled: serial output is disabled.")
         else:
-            self._hand = LinkerL20RS485(port=port, baudrate=baudrate, slave_id=slave_id)
+            self._hand = transport or LinkerL20RS485(
+                port=port, baudrate=baudrate, slave_id=self._slave_id
+            )
+            self._hand.slave_id = self._slave_id
             print(
                 f"Configuring Linker L20 at {port} @ {baudrate} "
-                f"(slave_id={slave_id}, speed={speed}, current_limit={current_limit})..."
+                f"(slave_id={self._slave_id}, speed={speed}, current_limit={current_limit})..."
             )
             try:
+                # A shared RS485 adapter serves both hands.  Select the target
+                # slave before every configuration/request, not just at open.
+                self._hand.slave_id = self._slave_id
                 self._hand.configure_motion_profile(
                     speed=speed,
                     current_limit=current_limit,
                     clear_faults=clear_faults,
                 )
             except Exception as exc:
-                self._hand.close()
+                if self._owns_hand:
+                    self._hand.close()
                 raise RuntimeError(
                     "Linker L20 did not respond during startup. "
                     "Check hand power, RS485 wiring, port, baudrate, and slave id. "
-                    f"Current constants: port={port}, baudrate={baudrate}, slave_id={slave_id}."
+                    f"Current constants: port={port}, baudrate={baudrate}, slave_id={self._slave_id}."
                 ) from exc
-            print(f"Connected to Linker L20 serial at {port} @ {baudrate} baud (slave_id={slave_id}).")
+            print(f"Connected to Linker L20 serial at {port} @ {baudrate} baud (slave_id={self._slave_id}).")
 
     def _ensure_joint_index(self, joint_names) -> None:
         key = tuple(str(name) for name in joint_names)
@@ -355,6 +365,15 @@ class LinkerL20Output(HandOutput):
         extended = [255] * 5
         return roll + yaw + extended + extended + extended + extended
 
+    def open_palm(self) -> None:
+        registers = self.open_palm_registers()
+        if self._print_registers or self._dry_run:
+            print(f"L20 open-palm registers: {registers}")
+        if self._hand is not None:
+            self._hand.slave_id = self._slave_id
+            self._hand.set_positions(registers)
+        self._last_registers = registers
+
     def send(self, qpos, joint_names):
         registers = self._qpos_to_registers(qpos, joint_names)
         if registers == self._last_registers:
@@ -363,6 +382,7 @@ class LinkerL20Output(HandOutput):
         if self._print_registers or self._dry_run:
             print(f"L20 registers: {registers}")
         if self._hand is not None:
+            self._hand.slave_id = self._slave_id
             self._hand.set_positions(registers)
         self._last_registers = registers
         self.send_count += 1
@@ -372,10 +392,13 @@ class LinkerL20Output(HandOutput):
             return
         try:
             if self._open_on_exit:
+                self._hand.slave_id = self._slave_id
                 self._hand.set_positions(self.open_palm_registers())
                 time.sleep(0.2)
         finally:
-            self._hand.close()
+            if self._owns_hand:
+                self._hand.close()
+            self._hand = None
 
 
 __all__ = ["LinkerL20Output", "LinkerL20RS485"]

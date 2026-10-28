@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 
 from .base_optimizer import BaseOptimizer
-from .utils import M_TO_CM, TimingStats, huber_loss_np, huber_loss_grad_np
+from .utils import M_TO_CM, TimingStats, huber_loss_np, huber_norm_gradient_np, stabilized_normalize_with_jacobian
 
 
 class AdaptiveOptimizerAnalytical(BaseOptimizer):
@@ -36,6 +36,21 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
         self.project_tip_dir = retarget_config.get('project_tip_dir', False)
         self.pinch_scaling = float(retarget_config.get('pinch_scaling', 1.0))
         self.pinch_alpha_max = float(retarget_config.get('alpha', self.PINCH_ALPHA_MAX))
+
+        # Research controls. Intent alphas are kept separate from fixed loss
+        # weights so a fixed-alpha ablation does not hallucinate pinch intent.
+        self.fixed_alpha = retarget_config.get('fixed_alpha')
+        self.pinch_target_mode = retarget_config.get('pinch_target_mode', 'legacy')
+        if not np.isfinite(self.pinch_alpha_max) or not 0 <= self.pinch_alpha_max <= 1:
+            raise ValueError("alpha must be finite and in [0, 1]")
+        if self.fixed_alpha is not None:
+            self.fixed_alpha = float(self.fixed_alpha)
+            if not np.isfinite(self.fixed_alpha) or not 0 <= self.fixed_alpha <= 1:
+                raise ValueError("fixed_alpha must be finite and in [0, 1]")
+        if not np.isfinite(self.pinch_scaling) or self.pinch_scaling <= 0:
+            raise ValueError("pinch_scaling must be finite and positive")
+        if self.pinch_target_mode not in ('legacy', 'off', 'uniform', 'always_uniform'):
+            raise ValueError("pinch_target_mode must be legacy, off, uniform, or always_uniform")
 
         # FullHandVec parameters
         self.w_full_hand = retarget_config.get('w_full_hand', 1.0)
@@ -77,6 +92,11 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
         self.d2 = np.array([
             pinch_config.get(f, {}).get('d2', 4.0) for f in non_thumb_fingers
         ], dtype=np.float64)
+
+        if not np.all(np.isfinite(self.d1)) or not np.all(np.isfinite(self.d2)):
+            raise ValueError("Pinch thresholds must be finite")
+        if np.any(self.d1 < 0) or np.any(self.d2 <= self.d1):
+            raise ValueError("Pinch thresholds require 0 <= d1 < d2")
 
         # Add link1 points for finger plane computation while preserving
         # possibly duplicated frame names with different local offsets.
@@ -138,7 +158,13 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
         )
         target_tip_vectors = target_full_hand_vectors[2 * nf:].copy()
 
-        if alphas is not None and self.pinch_scaling != 1.0 and nf > 1:
+        if self.pinch_target_mode == 'always_uniform':
+            target_tip_vectors = self._compute_tip_vectors(mediapipe_keypoints, self.pinch_scaling)
+
+        adjust_targets = self.pinch_target_mode == 'uniform' or (
+            self.pinch_target_mode == 'legacy' and self.pinch_scaling != 1.0
+        )
+        if alphas is not None and adjust_targets and nf > 1:
             partner = int(np.argmax(alphas[1:]) + 1)
             alpha = float(alphas[partner])
             if alpha > 0.0:
@@ -269,6 +295,10 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
         J_link4 = Js[self.link4_indices]  # (nf, 3, nq)
         J_wrist = Js[self.origin_indices[0]]  # (3, nq)
 
+        blend_alphas = (
+            alphas if self.fixed_alpha is None
+            else np.full(nf, self.fixed_alpha, dtype=np.float64)
+        )
         total_loss = 0.0
         total_grad = np.zeros(self.num_joints, dtype=np.float64)
 
@@ -278,31 +308,26 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
         dist_pos = np.linalg.norm(diff_pos, axis=1)  # (nf,)
         loss_tip_pos = huber_loss_np(dist_pos, self.huber_delta)  # (nf,)
 
-        huber_grad_pos = huber_loss_grad_np(dist_pos, self.huber_delta)  # (nf,)
-        diff_normed_pos = diff_pos / (dist_pos[:, None] + 1e-8)  # (nf, 3)
+        residual_grad_pos = huber_norm_gradient_np(diff_pos, self.huber_delta)
         for i in range(nf):
-            grad_coeff = alphas[i] * self.w_pos * huber_grad_pos[i]
+            grad_coeff = blend_alphas[i] * self.w_pos
             J_diff = J_task[i] - J_origin[i]  # (3, nq)
-            total_grad += grad_coeff * (diff_normed_pos[i] @ J_diff)
+            total_grad += grad_coeff * (residual_grad_pos[i] @ J_diff)
 
         # === Tip Direction Loss ===
         robot_tip_dir_vec = task_pos - link4_pos  # (nf, 3)
-        robot_tip_dir_norm = np.linalg.norm(robot_tip_dir_vec, axis=1, keepdims=True)  # (nf, 1)
-        robot_tip_dirs = robot_tip_dir_vec / (robot_tip_dir_norm + 1e-8)  # (nf, 3)
+        robot_tip_dirs, direction_jacobians = stabilized_normalize_with_jacobian(robot_tip_dir_vec)
 
         diff_dir = robot_tip_dirs - target_tip_dirs  # (nf, 3)
         dist_dir = np.linalg.norm(diff_dir, axis=1)  # (nf,)
         loss_tip_dir = huber_loss_np(dist_dir, self.huber_delta_dir)  # (nf,)
 
-        huber_grad_dir = huber_loss_grad_np(dist_dir, self.huber_delta_dir)  # (nf,)
-        diff_normed_dir = diff_dir / (dist_dir[:, None] + 1e-8)  # (nf, 3)
+        residual_grad_dir = huber_norm_gradient_np(diff_dir, self.huber_delta_dir)
         for i in range(nf):
-            grad_coeff = alphas[i] * self.w_dir * huber_grad_dir[i]
-            u = robot_tip_dirs[i]  # (3,)
-            n = robot_tip_dir_norm[i, 0]  # scalar
-            J_norm = (np.eye(3) - np.outer(u, u)) / (n + 1e-8)  # (3, 3)
+            grad_coeff = blend_alphas[i] * self.w_dir
+            J_norm = direction_jacobians[i]
             J_diff = J_task[i] - J_link4[i]  # (3, nq)
-            total_grad += grad_coeff * (diff_normed_dir[i] @ J_norm @ J_diff)
+            total_grad += grad_coeff * (residual_grad_dir[i] @ J_norm @ J_diff)
 
         # === Full Hand Vec Loss ===
         robot_pip_vec = link3_pos - wrist_pos  # (nf, 3)
@@ -326,24 +351,20 @@ class AdaptiveOptimizerAnalytical(BaseOptimizer):
         loss_tip_full = huber_loss_np(dist_tip, self.huber_delta)
         loss_full_hand = (loss_pip + loss_dip + loss_tip_full) / 3.0  # (nf,)
 
-        huber_grad_pip = huber_loss_grad_np(dist_pip, self.huber_delta)
-        huber_grad_dip = huber_loss_grad_np(dist_dip, self.huber_delta)
-        huber_grad_tip = huber_loss_grad_np(dist_tip, self.huber_delta)
-
-        diff_normed_pip = diff_pip / (dist_pip[:, None] + 1e-8)
-        diff_normed_dip = diff_dip / (dist_dip[:, None] + 1e-8)
-        diff_normed_tip = diff_tip / (dist_tip[:, None] + 1e-8)
+        residual_grad_pip = huber_norm_gradient_np(diff_pip, self.huber_delta)
+        residual_grad_dip = huber_norm_gradient_np(diff_dip, self.huber_delta)
+        residual_grad_tip = huber_norm_gradient_np(diff_tip, self.huber_delta)
 
         for i in range(nf):
-            grad_coeff = (1.0 - alphas[i]) * self.w_full_hand / 3.0
-            total_grad += grad_coeff * huber_grad_pip[i] * (diff_normed_pip[i] @ (J_link3[i] - J_wrist))
-            total_grad += grad_coeff * huber_grad_dip[i] * (diff_normed_dip[i] @ (J_link4[i] - J_wrist))
-            total_grad += grad_coeff * huber_grad_tip[i] * (diff_normed_tip[i] @ (J_task[i] - J_wrist))
+            grad_coeff = (1.0 - blend_alphas[i]) * self.w_full_hand / 3.0
+            total_grad += grad_coeff * (residual_grad_pip[i] @ (J_link3[i] - J_wrist))
+            total_grad += grad_coeff * (residual_grad_dip[i] @ (J_link4[i] - J_wrist))
+            total_grad += grad_coeff * (residual_grad_tip[i] @ (J_task[i] - J_wrist))
 
         # === Total Loss ===
         loss_tip_dir_vec = self.w_pos * loss_tip_pos + self.w_dir * loss_tip_dir
         loss_full = self.w_full_hand * loss_full_hand
-        loss_per_finger = alphas * loss_tip_dir_vec + (1.0 - alphas) * loss_full
+        loss_per_finger = blend_alphas * loss_tip_dir_vec + (1.0 - blend_alphas) * loss_full
         total_loss = np.sum(loss_per_finger)
 
         # === Contact Loss ===

@@ -29,6 +29,39 @@ def huber_loss_grad_np(x: np.ndarray, delta: float = 2.0) -> np.ndarray:
     return np.where(abs_x <= delta, x, delta * np.sign(x))
 
 
+def huber_norm_gradient_np(residual: np.ndarray, delta: float) -> np.ndarray:
+    """Exact gradient of rho_delta(||e||), including e=0; no norm epsilon.
+
+    In the quadratic region the gradient is e itself. At the Huber boundary
+    either branch has the same gradient. delta must be finite and positive.
+    """
+    if not np.isfinite(delta) or delta <= 0:
+        raise ValueError("Huber delta must be finite and positive")
+    residual = np.asarray(residual, dtype=np.float64)
+    norm = np.linalg.norm(residual, axis=-1, keepdims=True)
+    factor = np.ones_like(norm)
+    np.divide(delta, norm, out=factor, where=norm > delta)
+    return residual * factor
+
+
+def stabilized_normalize_with_jacobian(z: np.ndarray, epsilon: float = 1e-8):
+    """Return z/(||z||+epsilon) and its exact derivative w.r.t. z.
+
+    z can have batch dimensions; the final dimension is the vector dimension.
+    At z=0 the derivative exists and is I/epsilon. This does not make a zero
+    FK segment a physically meaningful direction; it only defines the function.
+    """
+    if not np.isfinite(epsilon) or epsilon <= 0:
+        raise ValueError("Normalization epsilon must be finite and positive")
+    z = np.asarray(z, dtype=np.float64)
+    n = np.linalg.norm(z, axis=-1, keepdims=True)
+    denominator = n + epsilon
+    unit = np.divide(z, n, out=np.zeros_like(z), where=n > 0)
+    outer = unit[..., :, None] * unit[..., None, :]
+    jacobian = (np.eye(z.shape[-1]) - (n / denominator)[..., None] * outer) / denominator[..., None]
+    return z / denominator, jacobian
+
+
 @dataclass
 class TimingStats:
     """Timing statistics for optimizer performance analysis."""
@@ -130,6 +163,9 @@ class LPFilter:
             alpha: Filter coefficient (0 < alpha <= 1).
                    Smaller = smoother but more latency.
         """
+        alpha = float(alpha)
+        if not np.isfinite(alpha) or not 0.0 < alpha <= 1.0:
+            raise ValueError("LPFilter alpha must be finite and in (0, 1]")
         self.alpha = alpha
         self.y = None
         self.is_init = False
