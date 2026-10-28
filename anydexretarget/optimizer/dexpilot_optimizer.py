@@ -381,7 +381,9 @@ class DexPilotOptimizer(BaseOptimizer):
             init_qpos = self._get_init_qpos(None)
             regularization_qpos = None
         init_qpos = np.clip(
-            init_qpos, self.independent_lower_bounds, self.independent_upper_bounds
+            init_qpos,
+            self.opt_lower_bounds[self.independent_indices],
+            self.opt_upper_bounds[self.independent_indices],
         )
 
         def objective_fn(x: np.ndarray, grad: np.ndarray) -> float:
