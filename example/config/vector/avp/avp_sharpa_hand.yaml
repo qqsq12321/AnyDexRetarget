@@ -12,32 +12,33 @@ retarget:
   norm_delta: 0.04
   lp_alpha: 0.4
 
+  scaling_factor: 1.18
   key_vectors:
     # thumb
-    - {origin: right_hand_C_MC, task: right_thumb_PP,         origin_kp: 0, task_kp:  2, scale: 1.251}
-    - {origin: right_hand_C_MC, task: right_thumb_DP,         origin_kp: 0, task_kp:  3, scale: 1.259}
-    - {origin: right_hand_C_MC, task: right_thumb_fingertip,  origin_kp: 0, task_kp:  4, scale: 1.214}
+  - {origin: right_hand_C_MC, task: right_thumb_PP, origin_kp: 0, task_kp: 2}
+  - {origin: right_hand_C_MC, task: right_thumb_DP, origin_kp: 0, task_kp: 3}
+  - {origin: right_hand_C_MC, task: right_thumb_fingertip, origin_kp: 0, task_kp: 4}
     # index
-    - {origin: right_hand_C_MC, task: right_index_MP,         origin_kp: 0, task_kp:  6, scale: 1.108}
-    - {origin: right_hand_C_MC, task: right_index_DP,         origin_kp: 0, task_kp:  7, scale: 1.148}
-    - {origin: right_hand_C_MC, task: right_index_fingertip,  origin_kp: 0, task_kp:  8, scale: 1.16}
+  - {origin: right_hand_C_MC, task: right_index_MP, origin_kp: 0, task_kp: 6}
+  - {origin: right_hand_C_MC, task: right_index_DP, origin_kp: 0, task_kp: 7}
+  - {origin: right_hand_C_MC, task: right_index_fingertip, origin_kp: 0, task_kp: 8}
     # middle
-    - {origin: right_hand_C_MC, task: right_middle_MP,        origin_kp: 0, task_kp: 10, scale: 1.101}
-    - {origin: right_hand_C_MC, task: right_middle_DP,        origin_kp: 0, task_kp: 11, scale: 1.115}
-    - {origin: right_hand_C_MC, task: right_middle_fingertip, origin_kp: 0, task_kp: 12, scale: 1.128}
+  - {origin: right_hand_C_MC, task: right_middle_MP, origin_kp: 0, task_kp: 10}
+  - {origin: right_hand_C_MC, task: right_middle_DP, origin_kp: 0, task_kp: 11}
+  - {origin: right_hand_C_MC, task: right_middle_fingertip, origin_kp: 0, task_kp: 12}
     # ring
-    - {origin: right_hand_C_MC, task: right_ring_MP,          origin_kp: 0, task_kp: 14, scale: 1.117}
-    - {origin: right_hand_C_MC, task: right_ring_DP,          origin_kp: 0, task_kp: 15, scale: 1.141}
-    - {origin: right_hand_C_MC, task: right_ring_fingertip,   origin_kp: 0, task_kp: 16, scale: 1.155}
+  - {origin: right_hand_C_MC, task: right_ring_MP, origin_kp: 0, task_kp: 14}
+  - {origin: right_hand_C_MC, task: right_ring_DP, origin_kp: 0, task_kp: 15}
+  - {origin: right_hand_C_MC, task: right_ring_fingertip, origin_kp: 0, task_kp: 16}
     # pinky
-    - {origin: right_hand_C_MC, task: right_pinky_MP,         origin_kp: 0, task_kp: 18, scale: 1.212}
-    - {origin: right_hand_C_MC, task: right_pinky_DP,         origin_kp: 0, task_kp: 19, scale: 1.29}
-    - {origin: right_hand_C_MC, task: right_pinky_fingertip,  origin_kp: 0, task_kp: 20, scale: 1.305}
+  - {origin: right_hand_C_MC, task: right_pinky_MP, origin_kp: 0, task_kp: 18}
+  - {origin: right_hand_C_MC, task: right_pinky_DP, origin_kp: 0, task_kp: 19}
+  - {origin: right_hand_C_MC, task: right_pinky_fingertip, origin_kp: 0, task_kp: 20}
 
   mediapipe_rotation:
-    x: -5.0
+    x: -8.0
     y: -5.0
-    z: 0.0
+    z: -5.0
 
 render:
   camera:

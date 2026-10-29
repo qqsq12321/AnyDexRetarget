@@ -15,33 +15,35 @@ retarget:
   lp_alpha: 0.4                # Low-pass filter coefficient
 
   # Key vectors define the mapping from human hand to robot hand
-  # Each vector: {origin: robot_link, task: robot_link, origin_kp: mp_idx, task_kp: mp_idx, scale: factor}
+  # Each vector: {origin: robot_link, task: robot_link, origin_kp: mp_idx, task_kp: mp_idx}
   # MediaPipe indices: 0=wrist, 1-4=thumb, 5-8=index, 9-12=middle, 13-16=ring, 17-20=pinky
+  # scaling_factor: single global scale applied to every vector (replaces the old per-vector scale)
+  scaling_factor: 1.218
   key_vectors:
     # === THUMB (finger 1) ===
-    - {origin: hand_base_link, task: thumb_proximal,     origin_kp: 0, task_kp:  2, scale: 1.028}
-    - {origin: hand_base_link, task: thumb_intermediate, origin_kp: 0, task_kp:  3, scale: 1.287}
-    - {origin: hand_base_link, task: thumb_tip,          origin_kp: 0, task_kp:  4, scale: 1.365}
+  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2}
+  - {origin: hand_base_link, task: thumb_intermediate, origin_kp: 0, task_kp: 3}
+  - {origin: hand_base_link, task: thumb_tip, origin_kp: 0, task_kp: 4}
 
     # === INDEX (finger 2) ===
-    - {origin: hand_base_link, task: index_proximal,     origin_kp: 0, task_kp:  6, scale: 1.075}
-    - {origin: hand_base_link, task: index_intermediate, origin_kp: 0, task_kp:  7, scale: 1.147}
-    - {origin: hand_base_link, task: index_tip,          origin_kp: 0, task_kp:  8, scale: 1.286}
+  - {origin: hand_base_link, task: index_proximal, origin_kp: 0, task_kp: 6}
+  - {origin: hand_base_link, task: index_intermediate, origin_kp: 0, task_kp: 7}
+  - {origin: hand_base_link, task: index_tip, origin_kp: 0, task_kp: 8}
 
     # === MIDDLE (finger 3) ===
-    - {origin: hand_base_link, task: middle_proximal,    origin_kp: 0, task_kp: 10, scale: 1.054}
-    - {origin: hand_base_link, task: middle_intermediate,origin_kp: 0, task_kp: 11, scale: 1.102}
-    - {origin: hand_base_link, task: middle_tip,         origin_kp: 0, task_kp: 12, scale: 1.234}
+  - {origin: hand_base_link, task: middle_proximal, origin_kp: 0, task_kp: 10}
+  - {origin: hand_base_link, task: middle_intermediate, origin_kp: 0, task_kp: 11}
+  - {origin: hand_base_link, task: middle_tip, origin_kp: 0, task_kp: 12}
 
     # === RING (finger 4) ===
-    - {origin: hand_base_link, task: ring_proximal,      origin_kp: 0, task_kp: 14, scale: 1.143}
-    - {origin: hand_base_link, task: ring_intermediate,  origin_kp: 0, task_kp: 15, scale: 1.176}
-    - {origin: hand_base_link, task: ring_tip,           origin_kp: 0, task_kp: 16, scale: 1.282}
+  - {origin: hand_base_link, task: ring_proximal, origin_kp: 0, task_kp: 14}
+  - {origin: hand_base_link, task: ring_intermediate, origin_kp: 0, task_kp: 15}
+  - {origin: hand_base_link, task: ring_tip, origin_kp: 0, task_kp: 16}
 
     # === PINKY (finger 5) ===
-    - {origin: hand_base_link, task: pinky_proximal,     origin_kp: 0, task_kp: 18, scale: 1.267}
-    - {origin: hand_base_link, task: pinky_intermediate, origin_kp: 0, task_kp: 19, scale: 1.354}
-    - {origin: hand_base_link, task: pinky_tip,          origin_kp: 0, task_kp: 20, scale: 1.468}
+  - {origin: hand_base_link, task: pinky_proximal, origin_kp: 0, task_kp: 18}
+  - {origin: hand_base_link, task: pinky_intermediate, origin_kp: 0, task_kp: 19}
+  - {origin: hand_base_link, task: pinky_tip, origin_kp: 0, task_kp: 20}
 
   # MediaPipe rotation adjustment (degrees)
   # Calibrated for Noitom PNS-G glove coordinate system

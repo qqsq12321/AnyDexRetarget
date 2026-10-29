@@ -1,6 +1,6 @@
 # Shadow Hand - KeyVectorOptimizer (MediaPipe input)
 # 15 key vectors: rh_palm -> {middle, distal, tip} for each finger
-# scale: 0.81 compensates for Shadow Hand being ~81% of human hand size
+# scaling_factor compensates for Shadow Hand being a different size than a human hand
 
 optimizer:
   type: "KeyVectorOptimizer"
@@ -23,27 +23,28 @@ retarget:
   #   Middle: 10=pip,11=dip, 12=tip
   #   Ring:   14=pip,15=dip, 16=tip
   #   Pinky:  18=pip,19=dip, 20=tip
+  scaling_factor: 1.055
   key_vectors:
     # thumb
-    - {origin: rh_palm, task: rh_thmiddle,  origin_kp: 0, task_kp:  2, scale: 0.884}
-    - {origin: rh_palm, task: rh_thdistal,  origin_kp: 0, task_kp:  3, scale: 0.883}
-    - {origin: rh_palm, task: rh_thtip,     origin_kp: 0, task_kp:  4, scale: 0.854}
+  - {origin: rh_palm, task: rh_thmiddle, origin_kp: 0, task_kp: 2}
+  - {origin: rh_palm, task: rh_thdistal, origin_kp: 0, task_kp: 3}
+  - {origin: rh_palm, task: rh_thtip, origin_kp: 0, task_kp: 4}
     # index finger
-    - {origin: rh_palm, task: rh_ffmiddle,  origin_kp: 0, task_kp:  6, scale: 1.079}
-    - {origin: rh_palm, task: rh_ffdistal,  origin_kp: 0, task_kp:  7, scale: 1.03}
-    - {origin: rh_palm, task: rh_fftip,     origin_kp: 0, task_kp:  8, scale: 1.028}
+  - {origin: rh_palm, task: rh_ffmiddle, origin_kp: 0, task_kp: 6}
+  - {origin: rh_palm, task: rh_ffdistal, origin_kp: 0, task_kp: 7}
+  - {origin: rh_palm, task: rh_fftip, origin_kp: 0, task_kp: 8}
     # middle finger
-    - {origin: rh_palm, task: rh_mfmiddle,  origin_kp: 0, task_kp: 10, scale: 1.098}
-    - {origin: rh_palm, task: rh_mfdistal,  origin_kp: 0, task_kp: 11, scale: 1.051}
-    - {origin: rh_palm, task: rh_mftip,     origin_kp: 0, task_kp: 12, scale: 1.052}
+  - {origin: rh_palm, task: rh_mfmiddle, origin_kp: 0, task_kp: 10}
+  - {origin: rh_palm, task: rh_mfdistal, origin_kp: 0, task_kp: 11}
+  - {origin: rh_palm, task: rh_mftip, origin_kp: 0, task_kp: 12}
     # ring finger
-    - {origin: rh_palm, task: rh_rfmiddle,  origin_kp: 0, task_kp: 14, scale: 1.113}
-    - {origin: rh_palm, task: rh_rfdistal,  origin_kp: 0, task_kp: 15, scale: 1.085}
-    - {origin: rh_palm, task: rh_rftip,     origin_kp: 0, task_kp: 16, scale: 1.098}
+  - {origin: rh_palm, task: rh_rfmiddle, origin_kp: 0, task_kp: 14}
+  - {origin: rh_palm, task: rh_rfdistal, origin_kp: 0, task_kp: 15}
+  - {origin: rh_palm, task: rh_rftip, origin_kp: 0, task_kp: 16}
     # little finger
-    - {origin: rh_palm, task: rh_lfmiddle,  origin_kp: 0, task_kp: 18, scale: 1.142}
-    - {origin: rh_palm, task: rh_lfdistal,  origin_kp: 0, task_kp: 19, scale: 1.18}
-    - {origin: rh_palm, task: rh_lftip,     origin_kp: 0, task_kp: 20, scale: 1.243}
+  - {origin: rh_palm, task: rh_lfmiddle, origin_kp: 0, task_kp: 18}
+  - {origin: rh_palm, task: rh_lfdistal, origin_kp: 0, task_kp: 19}
+  - {origin: rh_palm, task: rh_lftip, origin_kp: 0, task_kp: 20}
 
   mediapipe_rotation:
     x: -10.0

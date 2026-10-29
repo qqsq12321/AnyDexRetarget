@@ -234,18 +234,6 @@ def build_scaled_skeleton(mediapipe_kp, optimizer):
         # only optimizer-active points so zero-initialized inactive joints are
         # not rendered as part of the green skeleton.
         active_indices = {0, *mcp_indices, *pip_indices, *dip_indices, *tip_indices}
-    elif hasattr(optimizer, '_task_kp_indices'):
-        for i in range(1, 21):
-            scaled_kp[i] = origin_pos + (mediapipe_kp[i] - wrist)
-        for origin_kp, task_kp, scale in zip(
-            optimizer._origin_kp_indices,
-            optimizer._task_kp_indices,
-            optimizer._vector_scalings,
-        ):
-            if origin_kp == 0:
-                scaled_kp[task_kp] = origin_pos + (mediapipe_kp[task_kp] - wrist) * scale
-            else:
-                scaled_kp[task_kp] = scaled_kp[origin_kp] + (mediapipe_kp[task_kp] - mediapipe_kp[origin_kp]) * scale
     else:
         for i in range(1, 21):
             scaled_kp[i] = origin_pos + (mediapipe_kp[i] - wrist) * scaling
@@ -408,8 +396,8 @@ def main():
     parser = argparse.ArgumentParser(description="Debug skeleton visualization")
     parser.add_argument("--config", default=None, help="Config YAML path (overrides --robot and --optimizer)")
     parser.add_argument("--optimizer", default="adaptive",
-                        choices=["adaptive", "vector"],
-                        help="Optimizer type: adaptive (default) or vector (KeyVectorOptimizer)")
+                        choices=["adaptive"],
+                        help="Optimizer type: adaptive (default; vector visualization removed)")
     parser.add_argument("--robot", default="leap",
         choices=["shadow", "wuji", "allegro", "leap",
                  "inspire", "ability", "svh", "rohand",

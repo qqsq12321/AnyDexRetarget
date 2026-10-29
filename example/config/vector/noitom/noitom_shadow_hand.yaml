@@ -14,27 +14,28 @@ retarget:
   clamp_joint_lower:
     "J3": 0.0
 
+  scaling_factor: 1.153
   key_vectors:
     # thumb
-    - {origin: rh_palm, task: rh_thmiddle,  origin_kp: 0, task_kp:  2, scale: 1.2}
-    - {origin: rh_palm, task: rh_thdistal,  origin_kp: 0, task_kp:  3, scale: 1.2}
-    - {origin: rh_palm, task: rh_thtip,     origin_kp: 0, task_kp:  4, scale: 1.2}
+  - {origin: rh_palm, task: rh_thmiddle, origin_kp: 0, task_kp: 2}
+  - {origin: rh_palm, task: rh_thdistal, origin_kp: 0, task_kp: 3}
+  - {origin: rh_palm, task: rh_thtip, origin_kp: 0, task_kp: 4}
     # index finger
-    - {origin: rh_palm, task: rh_ffmiddle,  origin_kp: 0, task_kp:  6, scale: 1.1}
-    - {origin: rh_palm, task: rh_ffdistal,  origin_kp: 0, task_kp:  7, scale: 1.1}
-    - {origin: rh_palm, task: rh_fftip,     origin_kp: 0, task_kp:  8, scale: 1.15}
+  - {origin: rh_palm, task: rh_ffmiddle, origin_kp: 0, task_kp: 6}
+  - {origin: rh_palm, task: rh_ffdistal, origin_kp: 0, task_kp: 7}
+  - {origin: rh_palm, task: rh_fftip, origin_kp: 0, task_kp: 8}
     # middle finger
-    - {origin: rh_palm, task: rh_mfmiddle,  origin_kp: 0, task_kp: 10, scale: 1.09}
-    - {origin: rh_palm, task: rh_mfdistal,  origin_kp: 0, task_kp: 11, scale: 1.09}
-    - {origin: rh_palm, task: rh_mftip,     origin_kp: 0, task_kp: 12, scale: 1.10}
+  - {origin: rh_palm, task: rh_mfmiddle, origin_kp: 0, task_kp: 10}
+  - {origin: rh_palm, task: rh_mfdistal, origin_kp: 0, task_kp: 11}
+  - {origin: rh_palm, task: rh_mftip, origin_kp: 0, task_kp: 12}
     # ring finger
-    - {origin: rh_palm, task: rh_rfmiddle,  origin_kp: 0, task_kp: 14, scale: 1.17}
-    - {origin: rh_palm, task: rh_rfdistal,  origin_kp: 0, task_kp: 15, scale: 1.12}
-    - {origin: rh_palm, task: rh_rftip,     origin_kp: 0, task_kp: 16, scale: 1.15}
+  - {origin: rh_palm, task: rh_rfmiddle, origin_kp: 0, task_kp: 14}
+  - {origin: rh_palm, task: rh_rfdistal, origin_kp: 0, task_kp: 15}
+  - {origin: rh_palm, task: rh_rftip, origin_kp: 0, task_kp: 16}
     # little finger
-    - {origin: rh_palm, task: rh_lfmiddle,  origin_kp: 0, task_kp: 18, scale: 1.23}
-    - {origin: rh_palm, task: rh_lfdistal,  origin_kp: 0, task_kp: 19, scale: 1.2}
-    - {origin: rh_palm, task: rh_lftip,     origin_kp: 0, task_kp: 20, scale: 1.2}
+  - {origin: rh_palm, task: rh_lfmiddle, origin_kp: 0, task_kp: 18}
+  - {origin: rh_palm, task: rh_lfdistal, origin_kp: 0, task_kp: 19}
+  - {origin: rh_palm, task: rh_lftip, origin_kp: 0, task_kp: 20}
 
   mediapipe_rotation:
     x: -7.0
