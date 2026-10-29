@@ -85,7 +85,7 @@ _L20_FOUR_FINGER_MCP_PITCH_OFFSET_RAD = 0.0
 
 # Extra real-hand qpos offsets applied before qpos->register normalization.
 _L20_JOINT_OFFSETS_RAD = np.array([
-    0.0, 0.0, 0.0, 0.0,
+    0.0, 0.15, 0.0, 0.0,
     0.0, -0.15235988, 0.0,
     0.0, -0.15235988, 0.0,
     0.0, -0.15235988, 0.0,
