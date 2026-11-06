@@ -12,13 +12,18 @@ retarget:
   norm_delta: 0.06
   lp_alpha: 0.4
 
-  scaling_factor: 0.784
+  scaling_factor: 0.679
   key_vectors:
   - {origin: base_link00, task: Link_14R, origin_kp: 0, task_kp: 4}
   - {origin: base_link00, task: Link_24R, origin_kp: 0, task_kp: 8}
   - {origin: base_link00, task: Link_34R, origin_kp: 0, task_kp: 12}
   - {origin: base_link00, task: Link_44R, origin_kp: 0, task_kp: 16}
   - {origin: base_link00, task: Link_54R, origin_kp: 0, task_kp: 20}
+  - {origin: base_link00, task: Link_12R, origin_kp: 0, task_kp: 2}
+  - {origin: base_link00, task: Link_22R, origin_kp: 0, task_kp: 6}
+  - {origin: base_link00, task: Link_32R, origin_kp: 0, task_kp: 10}
+  - {origin: base_link00, task: Link_42R, origin_kp: 0, task_kp: 14}
+  - {origin: base_link00, task: Link_52R, origin_kp: 0, task_kp: 18}
 
   mediapipe_rotation:
     x: -90.0

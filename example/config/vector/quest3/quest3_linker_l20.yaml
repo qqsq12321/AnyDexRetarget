@@ -10,7 +10,7 @@ retarget:
   huber_delta: 2.0
   norm_delta: 0.04
   lp_alpha: 0.4
-  scaling_factor: 1.434
+  scaling_factor: 1.39
 
   # Pinch contact: pulls the thumb tip and the closest finger tip together
   # once they are within d2 (cm) of each other, so a pinch actually closes
@@ -31,6 +31,11 @@ retarget:
   - {origin: hand_base_link, task: middle_tip, origin_kp: 0, task_kp: 12}
   - {origin: hand_base_link, task: ring_tip, origin_kp: 0, task_kp: 16}
   - {origin: hand_base_link, task: pinky_tip, origin_kp: 0, task_kp: 20}
+  - {origin: hand_base_link, task: thumb_proximal, origin_kp: 0, task_kp: 2}
+  - {origin: hand_base_link, task: index_middle, origin_kp: 0, task_kp: 6}
+  - {origin: hand_base_link, task: middle_middle, origin_kp: 0, task_kp: 10}
+  - {origin: hand_base_link, task: ring_middle, origin_kp: 0, task_kp: 14}
+  - {origin: hand_base_link, task: pinky_middle, origin_kp: 0, task_kp: 18}
 
   mediapipe_rotation:
     x: -7.0

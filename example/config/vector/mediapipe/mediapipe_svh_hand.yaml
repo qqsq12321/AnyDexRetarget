@@ -13,13 +13,18 @@ retarget:
   norm_delta: 0.06
   lp_alpha: 0.4
 
-  scaling_factor: 1.152
+  scaling_factor: 1.134
   key_vectors:
   - {origin: right_hand_base_link, task: thtip, origin_kp: 0, task_kp: 4}
   - {origin: right_hand_base_link, task: fftip, origin_kp: 0, task_kp: 8}
   - {origin: right_hand_base_link, task: mftip, origin_kp: 0, task_kp: 12}
   - {origin: right_hand_base_link, task: rftip, origin_kp: 0, task_kp: 16}
   - {origin: right_hand_base_link, task: lftip, origin_kp: 0, task_kp: 20}
+  - {origin: right_hand_base_link, task: right_hand_a, origin_kp: 0, task_kp: 2}
+  - {origin: right_hand_base_link, task: right_hand_p, origin_kp: 0, task_kp: 6}
+  - {origin: right_hand_base_link, task: right_hand_o, origin_kp: 0, task_kp: 10}
+  - {origin: right_hand_base_link, task: right_hand_n, origin_kp: 0, task_kp: 14}
+  - {origin: right_hand_base_link, task: right_hand_m, origin_kp: 0, task_kp: 18}
 
   mediapipe_rotation:
     x: 0.0

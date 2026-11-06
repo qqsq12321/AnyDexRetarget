@@ -12,13 +12,18 @@ retarget:
   norm_delta: 0.04
   lp_alpha: 0.4
 
-  scaling_factor: 1.019
+  scaling_factor: 0.879
   key_vectors:
   - {origin: base, task: thumb_tip, origin_kp: 0, task_kp: 4}
   - {origin: base, task: index_tip, origin_kp: 0, task_kp: 8}
   - {origin: base, task: middle_tip, origin_kp: 0, task_kp: 12}
   - {origin: base, task: ring_tip, origin_kp: 0, task_kp: 16}
   - {origin: base, task: pinky_tip, origin_kp: 0, task_kp: 20}
+  - {origin: base, task: thumb_L1, origin_kp: 0, task_kp: 2}
+  - {origin: base, task: index_L1, origin_kp: 0, task_kp: 6}
+  - {origin: base, task: middle_L1, origin_kp: 0, task_kp: 10}
+  - {origin: base, task: ring_L1, origin_kp: 0, task_kp: 14}
+  - {origin: base, task: pinky_L1, origin_kp: 0, task_kp: 18}
 
   mediapipe_rotation:
     x: 0.0

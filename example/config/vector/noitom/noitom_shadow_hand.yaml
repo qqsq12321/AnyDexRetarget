@@ -14,7 +14,7 @@ retarget:
   clamp_joint_lower:
     "J3": 0.0
 
-  scaling_factor: 1.16
+  scaling_factor: 1.159
   key_vectors:
   - {origin: rh_palm, task: rh_thtip, origin_kp: 0, task_kp: 4}
   - {origin: rh_palm, task: rh_fftip, origin_kp: 0, task_kp: 8}

@@ -23,7 +23,7 @@ retarget:
   #   Middle: 10=pip,11=dip, 12=tip
   #   Ring:   14=pip,15=dip, 16=tip
   #   Pinky:  18=pip,19=dip, 20=tip
-  scaling_factor: 1.055
+  scaling_factor: 1.059
   key_vectors:
   - {origin: rh_palm, task: rh_thtip, origin_kp: 0, task_kp: 4}
   - {origin: rh_palm, task: rh_fftip, origin_kp: 0, task_kp: 8}

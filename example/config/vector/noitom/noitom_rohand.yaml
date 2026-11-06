@@ -11,13 +11,18 @@ retarget:
   norm_delta: 0.04
   lp_alpha: 0.4
 
-  scaling_factor: 0.895
+  scaling_factor: 0.828
   key_vectors:
   - {origin: base_link, task: th_distal_link, origin_kp: 0, task_kp: 4}
   - {origin: base_link, task: if_distal_link, origin_kp: 0, task_kp: 8}
   - {origin: base_link, task: mf_distal_link, origin_kp: 0, task_kp: 12}
   - {origin: base_link, task: rf_distal_link, origin_kp: 0, task_kp: 16}
   - {origin: base_link, task: lf_distal_link, origin_kp: 0, task_kp: 20}
+  - {origin: base_link, task: th_root_link, origin_kp: 0, task_kp: 2}
+  - {origin: base_link, task: if_slider_abpart_link, origin_kp: 0, task_kp: 6}
+  - {origin: base_link, task: mf_slider_abpart_link, origin_kp: 0, task_kp: 10}
+  - {origin: base_link, task: rf_slider_abpart_link, origin_kp: 0, task_kp: 14}
+  - {origin: base_link, task: lf_slider_abpart_link, origin_kp: 0, task_kp: 18}
 
   mediapipe_rotation:
     x: 180.0
