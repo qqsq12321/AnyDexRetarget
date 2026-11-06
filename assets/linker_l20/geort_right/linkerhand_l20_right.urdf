@@ -1284,4 +1284,37 @@
       multiplier="0.89"
       offset="0" />
   </joint>
+  <!-- Fixed fingertip frames: the distal link origins sit at the DIP/IP
+       joints, so these frames mark the fingertip surfaces (same offsets as
+       ROBOT_CONFIGS['linker_l20']['tip_offsets']). -->
+  <link name="thumb_tip" />
+  <joint name="thumb_tip_joint" type="fixed">
+    <origin xyz="-0.011 0 0.0277" rpy="0 0 0" />
+    <parent link="thumb_distal" />
+    <child link="thumb_tip" />
+  </joint>
+  <link name="index_tip" />
+  <joint name="index_tip_joint" type="fixed">
+    <origin xyz="-0.0135 0 0.0188" rpy="0 0 0" />
+    <parent link="index_distal" />
+    <child link="index_tip" />
+  </joint>
+  <link name="middle_tip" />
+  <joint name="middle_tip_joint" type="fixed">
+    <origin xyz="-0.0135 0 0.0188" rpy="0 0 0" />
+    <parent link="middle_distal" />
+    <child link="middle_tip" />
+  </joint>
+  <link name="ring_tip" />
+  <joint name="ring_tip_joint" type="fixed">
+    <origin xyz="-0.0135 0 0.0188" rpy="0 0 0" />
+    <parent link="ring_distal" />
+    <child link="ring_tip" />
+  </joint>
+  <link name="pinky_tip" />
+  <joint name="pinky_tip_joint" type="fixed">
+    <origin xyz="-0.0135 0 0.0188" rpy="0 0 0" />
+    <parent link="pinky_distal" />
+    <child link="pinky_tip" />
+  </joint>
 </robot>
