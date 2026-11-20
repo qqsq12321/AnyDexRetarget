@@ -1,0 +1,39 @@
+# pico_umetrack (PICO stereo cameras + UmeTrack) - initialised from vector/pico4/pico4_gaia_hand20.yaml; tuned independently.
+# Gaia Hand20 - KeyVectorOptimizer (Pico 4 input)
+# Gaia Hand20 scaling calibrated from Pico 4 right-hand tracking data.
+# Scale values from wuji-retargeting-private/config/vector/vector_pico4.yaml
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "gaia_hand20"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.2
+
+  scaling_factor: 1.518
+  key_vectors:
+  - {origin: right_base_link, task: right_thumb_tip, origin_kp: 0, task_kp: 4}
+  - {origin: right_base_link, task: right_index_tip, origin_kp: 0, task_kp: 8}
+  - {origin: right_base_link, task: right_middle_tip, origin_kp: 0, task_kp: 12}
+  - {origin: right_base_link, task: right_ring_tip, origin_kp: 0, task_kp: 16}
+  - {origin: right_base_link, task: right_little_tip, origin_kp: 0, task_kp: 20}
+  - {origin: right_base_link, task: right_thumb_link_3, origin_kp: 0, task_kp: 2}
+  - {origin: right_base_link, task: right_index_link_3, origin_kp: 0, task_kp: 6}
+  - {origin: right_base_link, task: right_middle_link_3, origin_kp: 0, task_kp: 10}
+  - {origin: right_base_link, task: right_ring_link_3, origin_kp: 0, task_kp: 14}
+  - {origin: right_base_link, task: right_little_link_3, origin_kp: 0, task_kp: 18}
+
+  mediapipe_rotation:
+    x: -7.0
+    y: -3.0
+    z: -10.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5

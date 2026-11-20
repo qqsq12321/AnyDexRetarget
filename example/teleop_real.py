@@ -242,6 +242,9 @@ def run_teleop(
                 and not input_thread.is_alive()
             ):
                 break
+            # The live launcher exited (startup failure or capture duration reached).
+            if input_device_type == "pico_umetrack" and getattr(input_device, "_finished", False):
+                break
 
             sleep_time = control_dt - (time.time() - loop_start)
             if sleep_time > 0:

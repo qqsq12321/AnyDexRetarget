@@ -63,12 +63,14 @@ example/config/
 │   ├── avp/           # Apple Vision Pro
 │   ├── quest3/        # Meta Quest 3
 │   ├── pico4/         # Pico 4
+│   ├── pico_umetrack/ # PICO 双目相机 + UmeTrack（Hand 仓库）
 │   └── noitom/        # Noitom PNS-G 动捕手套
 └── vector/            # KeyVectorOptimizer
     ├── mediapipe/
     ├── avp/
     ├── quest3/
     ├── pico4/
+    ├── pico_umetrack/
     └── noitom/
 ```
 
@@ -132,6 +134,7 @@ example/config/
 │   │   │   ├── quest3/                    # Meta Quest 3
 │   │   │   ├── mediapipe/                 # MediaPipe（摄像头/视频/回放）
 │   │   │   ├── pico4/                     # Pico 4
+│   │   │   ├── pico_umetrack/             # PICO 双目相机 + UmeTrack
 │   │   │   └── noitom/                    # Noitom PNS-G 手套
 │   │   ├── vector/                        # KeyVectorOptimizer 配置（目录结构相同）
 │   │   └── dexpilot/                      # DexPilotOptimizer 配置（目录结构相同）
@@ -200,6 +203,13 @@ python teleop_sim.py --input pico4 --pico4-mode direct --robot gaia --hand right
 
 # Pico 4 中继模式（默认；需要先在另一个终端运行 input/pico4_daemon.py）
 python teleop_sim.py --input pico4 --robot gaia --hand right
+
+# PICO 双目相机 + UmeTrack（位置/旋转滤波）：自动启动同级 Hand 仓库的
+# tools/start_pico_on_demand_filtered.sh 并实时读取其 landmarks.jsonl；配置在 config/*/pico_umetrack/
+python teleop_sim.py --input pico_umetrack --robot linker_l20 --hand right
+
+# 回放 Hand 仓库录制的 landmarks.jsonl
+python teleop_sim.py --input pico_umetrack --file /path/to/landmarks.jsonl --robot linker_l20 --hand right
 
 # 切换到 KeyVector 优化器
 python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right --optimizer vector
@@ -279,7 +289,7 @@ python -c "import hand; print('Gaia HandSDK OK')"
 
 | 选项 | 默认值 | 说明 |
 |------|--------|------|
-| `--input` | `video`（sim）/ `replay`（real） | `avp` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `replay` |
+| `--input` | `video`（sim）/ `replay`（real） | `avp` / `quest3` / `pico4` / `pico_umetrack` / `noitom` / `camera` / `realsense` / `video` / `replay` |
 | `--file FILE` | `data/right.mp4`（video）/ `data/avp1.pkl`（replay） | `video` / `replay` 输入的文件 |
 | `--hand` | `right` | 手的方向（`left`/`right`） |
 | `--show-video` | 关闭 | 显示 RGB / 关键点预览（相机类输入） |
@@ -296,6 +306,10 @@ python -c "import hand; print('Gaia HandSDK OK')"
 | `--pico4-mode` | `relay` | `relay`（经 `input/pico4_daemon.py` 中继）或 `direct`（PC 作 TCP 服务端） |
 | `--pico4-relay-host` / `--pico4-relay-port` | `127.0.0.1` / `63902` | 中继模式：daemon 地址 |
 | `--pico4-port` / `--pico4-broadcast-port` | `63901` / `29888` | 直连模式：TCP 监听端口 / UDP 广播端口 |
+| `--pico-umetrack-root` | 同级目录 `../Hand` | pico_umetrack：Hand 仓库路径 |
+| `--pico-umetrack-port` | `8765` | pico_umetrack：头显经 adb reverse 推流的本地端口（被占用时换一个） |
+| `--pico-umetrack-duration` | `600` | pico_umetrack：采集时长（1..3600 秒） |
+| `--pico-umetrack-headless` | 关 | pico_umetrack：不显示 Hand 的双目预览窗口 |
 | `--noitom-local-ip` | `192.168.5.25` | Noitom：本机 IP |
 | `--noitom-local-port` | `8000` | Noitom：本机 UDP 端口 |
 | `--noitom-server-ip` | `192.168.5.33` | Noitom：Axis Studio IP（Windows） |

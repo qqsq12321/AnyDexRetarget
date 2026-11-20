@@ -4,11 +4,11 @@ Uses robust open-hand morphology calibration: robot link lengths are divided
 by median human segment lengths from a natural open-hand capture.
 
 Outputs recommended segment_scaling values and optionally writes them back to
-the Adaptive config YAML file. (The Vector optimizer now uses a single global
-``scaling_factor`` instead of per-vector scales, so it is tuned by hand, not
-by this tool.)
+the Adaptive config YAML file. (The Vector optimizer uses a global
+``scaling_factor`` with an optional per-finger ``finger_scaling`` override,
+tuned by hand, not by this tool.)
 
-Supported inputs: realsense, video (both use mediapipe configs), noitom, quest3, avp, pico4
+Supported inputs: realsense, video (both use mediapipe configs), noitom, quest3, avp, pico4, pico_umetrack
 
 Usage:
     python test/calibrate_scaling.py --robot sharpa --input video --file data/right.mp4
@@ -59,7 +59,7 @@ ROBOT_NAME_MAP = {
 }
 
 # Live sources only: calibration captures a held pose, not a recording.
-CALIBRATION_INPUTS = ("realsense", "video", "avp", "quest3", "pico4", "noitom")
+CALIBRATION_INPUTS = ("realsense", "video", "avp", "quest3", "pico4", "pico_umetrack", "noitom")
 
 
 def _resolve_config_path(args, robot_file):

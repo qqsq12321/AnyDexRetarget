@@ -67,7 +67,7 @@ M_TO_CM = 100.0
 
 # A recording is fitted with the config of the device that produced it,
 # which is read off the file name (e.g. data/avp1.pkl -> avp).
-REPLAY_SOURCES = ("mediapipe", "noitom", "quest3", "avp", "pico4")
+REPLAY_SOURCES = ("mediapipe", "noitom", "quest3", "avp", "pico4", "pico_umetrack")
 
 
 def fit_rotation(human_roots: np.ndarray, robot_roots: np.ndarray):

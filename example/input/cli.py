@@ -2,8 +2,8 @@
 
 Every teleop / debug / calibration script selects its input the same way:
 
-    --input {avp,quest3,pico4,noitom,camera,realsense,video,replay}
-    --file FILE                      # video / replay only
+    --input {avp,quest3,pico4,pico_umetrack,noitom,camera,realsense,video,replay}
+    --file FILE                      # video / replay / pico_umetrack replay
 
 plus one option group per device.  Scripts change a default with
 ``parser.set_defaults(...)`` instead of redefining the option.
@@ -19,13 +19,15 @@ from .pico4 import (
     DEFAULT_RELAY_PORT,
     DEFAULT_UDP_BROADCAST_PORT,
 )
+from .pico_umetrack import DEFAULT_DURATION_S, DEFAULT_HAND_ROOT, DEFAULT_PORT as DEFAULT_UMETRACK_PORT
 
-INPUT_CHOICES = ("avp", "quest3", "pico4", "noitom", "camera", "realsense", "video", "replay")
+INPUT_CHOICES = ("avp", "quest3", "pico4", "pico_umetrack", "noitom", "camera", "realsense", "video", "replay")
 
 DEFAULT_FILES = {"video": "data/right.mp4", "replay": "data/avp1.pkl"}
 
 # Headset / glove inputs have their own configs; MediaPipe-based inputs share one.
-_CONFIG_DIRS = {"avp": "avp", "quest3": "quest3", "pico4": "pico4", "noitom": "noitom"}
+_CONFIG_DIRS = {"avp": "avp", "quest3": "quest3", "pico4": "pico4", "pico_umetrack": "pico_umetrack",
+                "noitom": "noitom"}
 
 
 def config_dir_for(input_type: str) -> str:
@@ -53,7 +55,8 @@ def add_input_args(
     source.add_argument("--input", default=default, choices=choices,
                         help="Input source (default: %(default)s)")
     source.add_argument("--file", default=None, metavar="FILE",
-                        help="File for video / replay input (default: "
+                        help="File for video / replay input, or a landmarks.jsonl to replay with "
+                             "pico_umetrack (default: "
                              + ", ".join(f"{k}: {v}" for k, v in DEFAULT_FILES.items()) + ")")
     source.add_argument("--show-video", action="store_true",
                         help="Show RGB / landmark preview for camera-based inputs")
@@ -79,6 +82,16 @@ def add_input_args(
                        help="direct: TCP listen port (default: %(default)s)")
     pico4.add_argument("--pico4-broadcast-port", type=int, default=DEFAULT_UDP_BROADCAST_PORT, metavar="PORT",
                        help="direct: UDP broadcast port (default: %(default)s)")
+
+    umetrack = parser.add_argument_group("pico_umetrack (PICO stereo cameras + UmeTrack, from the Hand repo)")
+    umetrack.add_argument("--pico-umetrack-root", default=DEFAULT_HAND_ROOT, metavar="DIR",
+                          help="Hand repository path (default: %(default)s)")
+    umetrack.add_argument("--pico-umetrack-port", type=int, default=DEFAULT_UMETRACK_PORT, metavar="PORT",
+                          help="Local port the headset streams to via adb reverse (default: %(default)s)")
+    umetrack.add_argument("--pico-umetrack-duration", type=int, default=DEFAULT_DURATION_S, metavar="SEC",
+                          help="Capture duration, 1..3600 s (default: %(default)s)")
+    umetrack.add_argument("--pico-umetrack-headless", action="store_true",
+                          help="Run the Hand launcher without its stereo preview window")
 
     noitom = parser.add_argument_group("noitom (PNS-G gloves via Axis Studio)")
     noitom.add_argument("--noitom-local-ip", default="192.168.5.25", metavar="IP",
@@ -124,6 +137,17 @@ def open_input(args: argparse.Namespace, hand_side: str):
             relay_port=args.pico4_relay_port,
             port=args.pico4_port,
             broadcast_port=args.pico4_broadcast_port,
+        )
+    if args.input == "pico_umetrack":
+        from .pico_umetrack import PicoUmeTrack
+        return PicoUmeTrack(
+            hand_root=args.pico_umetrack_root,
+            port=args.pico_umetrack_port,
+            duration=args.pico_umetrack_duration,
+            headless=args.pico_umetrack_headless,
+            file=args.file,
+            playback_speed=args.speed,
+            loop=not args.no_loop,
         )
     if args.input == "noitom":
         from .noitom import NoitomInput

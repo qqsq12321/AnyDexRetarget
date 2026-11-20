@@ -63,12 +63,14 @@ example/config/
 │   ├── avp/           # Apple Vision Pro input
 │   ├── quest3/        # Meta Quest 3 input
 │   ├── pico4/         # Pico 4 input
+│   ├── pico_umetrack/ # PICO stereo cameras + UmeTrack (Hand repo)
 │   └── noitom/        # Noitom PNS-G gloves
 └── vector/            # KeyVectorOptimizer
     ├── mediapipe/
     ├── avp/
     ├── quest3/
     ├── pico4/
+    ├── pico_umetrack/
     └── noitom/
 ```
 
@@ -132,6 +134,7 @@ example/config/
 │   │   │   ├── quest3/                    # Meta Quest 3
 │   │   │   ├── mediapipe/                 # Camera / video / replay
 │   │   │   ├── pico4/                     # Pico 4
+│   │   │   ├── pico_umetrack/             # PICO stereo cameras + UmeTrack
 │   │   │   └── noitom/                    # Noitom PNS-G gloves
 │   │   ├── vector/                        # KeyVectorOptimizer configs (same layout)
 │   │   └── dexpilot/                      # DexPilotOptimizer configs (same layout)
@@ -200,6 +203,13 @@ python teleop_sim.py --input pico4 --pico4-mode direct --robot gaia --hand right
 
 # Pico 4 relay mode (default; run input/pico4_daemon.py in another terminal first)
 python teleop_sim.py --input pico4 --robot gaia --hand right
+
+# PICO stereo cameras + UmeTrack (position/rotation filtered): starts the sibling Hand
+# repo's tools/start_pico_on_demand_filtered.sh and tails its landmarks.jsonl; configs in config/*/pico_umetrack/
+python teleop_sim.py --input pico_umetrack --robot linker_l20 --hand right
+
+# Replay a landmarks.jsonl recorded by the Hand repo
+python teleop_sim.py --input pico_umetrack --file /path/to/landmarks.jsonl --robot linker_l20 --hand right
 
 # Switch to KeyVector optimizer
 python teleop_sim.py --input video --file data/right.mp4 --robot shadow --hand right --optimizer vector
@@ -279,7 +289,7 @@ The input options below are shared by `teleop_sim.py`, `teleop_real.py`, `debug_
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--input` | `video` (sim) / `replay` (real) | `avp` / `quest3` / `pico4` / `noitom` / `camera` / `realsense` / `video` / `replay` |
+| `--input` | `video` (sim) / `replay` (real) | `avp` / `quest3` / `pico4` / `pico_umetrack` / `noitom` / `camera` / `realsense` / `video` / `replay` |
 | `--file FILE` | `data/right.mp4` (video) / `data/avp1.pkl` (replay) | File for `video` / `replay` input |
 | `--hand` | `right` | Hand side (`left`/`right`) |
 | `--show-video` | off | Show RGB / landmark preview for camera-based inputs |
@@ -296,6 +306,10 @@ Only the options of the selected `--input` device are used.
 | `--pico4-mode` | `relay` | `relay` (via `input/pico4_daemon.py`) or `direct` (PC TCP server) |
 | `--pico4-relay-host` / `--pico4-relay-port` | `127.0.0.1` / `63902` | Relay mode: daemon address |
 | `--pico4-port` / `--pico4-broadcast-port` | `63901` / `29888` | Direct mode: TCP listen port / UDP broadcast port |
+| `--pico-umetrack-root` | sibling `../Hand` | pico_umetrack: Hand repository path |
+| `--pico-umetrack-port` | `8765` | pico_umetrack: local port the headset streams to via adb reverse (change it if taken) |
+| `--pico-umetrack-duration` | `600` | pico_umetrack: capture duration (1..3600 s) |
+| `--pico-umetrack-headless` | off | pico_umetrack: hide the Hand stereo preview window |
 | `--noitom-local-ip` | `192.168.5.25` | Noitom: local IP (this machine) |
 | `--noitom-local-port` | `8000` | Noitom: local UDP port |
 | `--noitom-server-ip` | `192.168.5.33` | Noitom: Axis Studio IP (Windows) |

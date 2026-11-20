@@ -473,6 +473,8 @@ def main():
             print(f"Pico4 mode: direct (tcp={args.pico4_port}, udp_broadcast={args.pico4_broadcast_port})")
         else:
             print(f"Pico4 mode: relay ({args.pico4_relay_host}:{args.pico4_relay_port})")
+    elif args.input == "pico_umetrack":
+        print("PICO UmeTrack: " + (f"replay {args.file}" if args.file else f"live (port {args.pico_umetrack_port})"))
     if qpos_servo_mode:
         print(f"Control mode: qpos servo (alpha={qpos_servo_alpha})")
     elif actuator_mode:
@@ -591,6 +593,9 @@ def main():
         input_thread.start()
 
         while viewer.is_running():
+            # The live launcher exited (startup failure or capture duration reached).
+            if args.input == "pico_umetrack" and getattr(input_device, "_finished", False):
+                break
             with data_lock:
                 target_copy = latest_target.copy()
                 raw_mp_kp = (latest_raw_mediapipe_kp.copy()

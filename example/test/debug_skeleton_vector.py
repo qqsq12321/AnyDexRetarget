@@ -3,11 +3,12 @@ vector（KeyVectorOptimizer）专用的骨架可视化，效果和 debug_skeleto
 
 Shows three hand skeletons side-by-side in the MuJoCo viewer:
   - Blue:  Raw MediaPipe skeleton (after coordinate transform, before scaling)
-  - Green: Vector optimizer's scaled target points (key_vectors * scaling_factor)
+  - Green: Vector optimizer's scaled target points (key_vectors * per-vector scale)
   - Red:   Robot FK skeleton (retargeting result)
 
 There is no yellow pinch-scaling preview here: KeyVectorOptimizer has no
-pinch_scaling/segment_scaling concept, just one global scaling_factor.
+pinch_scaling/segment_scaling concept, just scaling_factor and the optional
+per-finger finger_scaling override.
 
 Usage:
     python debug_skeleton_vector.py --robot leap
@@ -54,9 +55,9 @@ def build_vector_scaled_skeleton(mediapipe_kp, optimizer):
     """Build the KeyVectorOptimizer's scaled target skeleton.
 
     Mirrors ``KeyVectorOptimizer._compute_target_vectors`` exactly: each
-    ``key_vectors`` entry sets
+    ``key_vectors`` entry, with its own ``vector_scales`` entry, sets
 
-        target[task_kp] = point[origin_kp] + (mp[task_kp] - mp[origin_kp]) * scaling_factor
+        target[task_kp] = point[origin_kp] + (mp[task_kp] - mp[origin_kp]) * scale
 
     Connections are drawn directly from each vector's (origin_kp, task_kp)
     pair -- not from MediaPipe's "adjacent landmark" topology table, which
@@ -76,24 +77,29 @@ def build_vector_scaled_skeleton(mediapipe_kp, optimizer):
     origin_pos = robot.data.oMf[origin_id].translation.copy()
 
     wrist = mediapipe_kp[0]
-    scaling_factor = float(getattr(optimizer, 'scaling_factor', 1.0))
+    vector_scales = getattr(
+        optimizer, 'vector_scales',
+        np.full(len(optimizer._task_kp_indices), float(getattr(optimizer, 'scaling_factor', 1.0))),
+    )
 
     scaled_kp = np.zeros_like(mediapipe_kp)
     scaled_kp[0] = origin_pos
 
     covered = {0}
     vector_edges = []
-    for origin_kp_idx, task_kp_idx in zip(optimizer._origin_kp_indices, optimizer._task_kp_indices):
+    for origin_kp_idx, task_kp_idx, scale in zip(
+        optimizer._origin_kp_indices, optimizer._task_kp_indices, vector_scales
+    ):
         origin_kp_idx = int(origin_kp_idx)
         task_kp_idx = int(task_kp_idx)
         if origin_kp_idx == 0:
-            scaled_kp[task_kp_idx] = origin_pos + (mediapipe_kp[task_kp_idx] - wrist) * scaling_factor
+            scaled_kp[task_kp_idx] = origin_pos + (mediapipe_kp[task_kp_idx] - wrist) * scale
         else:
             # Chain off an already-scaled point, same as the optimizer would
             # if a vector's origin were itself another vector's task point.
             scaled_kp[task_kp_idx] = scaled_kp[origin_kp_idx] + (
                 mediapipe_kp[task_kp_idx] - mediapipe_kp[origin_kp_idx]
-            ) * scaling_factor
+            ) * scale
         covered.add(task_kp_idx)
         vector_edges.append((origin_kp_idx, task_kp_idx))
 
@@ -182,7 +188,9 @@ def main():
     assert isinstance(optimizer, KeyVectorOptimizer), (
         f"Expected KeyVectorOptimizer, got {type(optimizer).__name__}"
     )
-    print(f"scaling_factor: {optimizer.scaling_factor}  num_vectors: {optimizer.num_vectors}")
+    scale_info = (f"finger_scaling: {optimizer.finger_scaling}" if optimizer.finger_scaling
+                  else f"scaling_factor: {optimizer.scaling_factor}")
+    print(f"{scale_info}  num_vectors: {optimizer.num_vectors}")
 
     input_device = open_input(args, args.hand)
 
@@ -192,6 +200,8 @@ def main():
             print(f"Pico4 mode: direct (tcp={args.pico4_port}, udp_broadcast={args.pico4_broadcast_port})")
         else:
             print(f"Pico4 mode: relay ({args.pico4_relay_host}:{args.pico4_relay_port})")
+    elif args.input == "pico_umetrack":
+        print("PICO UmeTrack: " + (f"replay {args.file}" if args.file else f"live (port {args.pico_umetrack_port})"))
     if qpos_servo_mode:
         print(f"Control mode: qpos servo (alpha={qpos_servo_alpha})")
     elif actuator_mode:
@@ -286,7 +296,7 @@ def main():
     print("=" * 60)
     print("Debug Skeleton Viewer (vector / KeyVectorOptimizer)")
     print("  Blue  = Raw MediaPipe (no scaling)")
-    print("  Green = key_vectors target (scaling_factor applied)")
+    print("  Green = key_vectors target (scaling_factor / finger_scaling applied)")
     print("  Red   = Robot FK (retargeting result)")
     print("=" * 60)
 
@@ -294,6 +304,9 @@ def main():
         input_thread.start()
 
         while viewer.is_running():
+            # The live launcher exited (startup failure or capture duration reached).
+            if args.input == "pico_umetrack" and getattr(input_device, "_finished", False):
+                break
             with data_lock:
                 target_copy = latest_target.copy()
                 raw_mp_kp = (latest_raw_mediapipe_kp.copy()

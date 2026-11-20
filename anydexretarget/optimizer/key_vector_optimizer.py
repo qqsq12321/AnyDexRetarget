@@ -13,23 +13,37 @@ import numpy as np
 from .base_optimizer import BaseOptimizer
 from .utils import M_TO_CM, TimingStats, huber_loss_np, huber_loss_grad_np
 
+FINGER_NAMES = ("thumb", "index", "middle", "ring", "pinky")
+
+
+def _finger_of(kp: int) -> Optional[str]:
+    """Finger owning a MediaPipe keypoint (None for the wrist)."""
+    kp = int(kp)
+    return FINGER_NAMES[(kp - 1) // 4] if 1 <= kp <= 20 else None
+
 
 class KeyVectorOptimizer(BaseOptimizer):
     """Key-vector-based retargeting optimizer.
 
     Reimplementation of the classic dex-retargeting VectorOptimizer: each key
     vector is an (origin_link, task_link) pair on the robot, matched to a
-    (origin_kp, task_kp) MediaPipe keypoint pair, and scaled by a single
-    global factor (not per-vector).
+    (origin_kp, task_kp) MediaPipe keypoint pair, and scaled by a global
+    factor, optionally overridden per finger.
 
     Loss:
-        L(q) = (1/N) * Σᵢ Huber(‖[FK(task_i)-FK(origin_i)] - scaling_factor*(mp[task_kp_i]-mp[origin_kp_i])‖)
+        L(q) = (1/N) * Σᵢ Huber(‖[FK(task_i)-FK(origin_i)] - sᵢ*(mp[task_kp_i]-mp[origin_kp_i])‖)
              + norm_delta * ‖q - q_prev‖²
              + w_contact * alpha_partner * ‖FK(thumb_tip) - FK(partner_tip)‖²   (optional, see retarget.contact)
 
     Config:
         - retarget.scaling_factor: global scale applied to every human vector
           (default 1.0). E.g. a robot hand 1.2x larger than a human hand uses 1.2.
+        - retarget.finger_scaling (optional): per-finger scale, e.g.
+          ``{thumb: 1.3, index: 1.1, ...}``. A vector belongs to the finger of
+          its task_kp (1-4 thumb, 5-8 index, 9-12 middle, 13-16 ring,
+          17-20 pinky). Fingers not listed fall back to scaling_factor; if
+          scaling_factor is omitted, every finger used by key_vectors must be
+          listed.
         - retarget.key_vectors (required), each entry:
             - origin: robot origin link name
             - task:   robot task link name
@@ -137,7 +151,41 @@ class KeyVectorOptimizer(BaseOptimizer):
         self._origin_kp_indices = np.array([kv['origin_kp'] for kv in kv_config], dtype=int)
         self._task_kp_indices   = np.array([kv['task_kp']   for kv in kv_config], dtype=int)
         self.num_vectors        = len(kv_config)
+        self.finger_scaling     = {
+            name: float(value)
+            for name, value in (retarget_config.get('finger_scaling') or {}).items()
+        }
+        unknown = set(self.finger_scaling) - set(FINGER_NAMES)
+        if unknown:
+            raise ValueError(
+                f"retarget.finger_scaling has unknown fingers {sorted(unknown)}; "
+                f"expected a subset of {list(FINGER_NAMES)}"
+            )
+        # With finger_scaling alone, every used finger must be listed: a
+        # silent 1.0 fallback for a forgotten finger is hard to notice.
+        has_global = 'scaling_factor' in retarget_config or not self.finger_scaling
         self.scaling_factor     = float(retarget_config.get('scaling_factor', 1.0))
+        if not has_global:
+            missing = sorted(
+                {_finger_of(kp) or 'wrist' for kp in self._task_kp_indices}
+                - set(self.finger_scaling),
+                key=lambda name: (FINGER_NAMES + ('wrist',)).index(name),
+            )
+            if missing:
+                raise ValueError(
+                    f"retarget.finger_scaling is missing {missing}; list every finger "
+                    "used by key_vectors or set retarget.scaling_factor as the fallback"
+                )
+        if self.scaling_factor <= 0 or any(v <= 0 for v in self.finger_scaling.values()):
+            raise ValueError("retarget.scaling_factor and finger_scaling values must be positive")
+        # (N,) scale per key vector, resolved once from its task_kp's finger.
+        self.vector_scales = np.array(
+            [
+                self.finger_scaling.get(_finger_of(kp), self.scaling_factor)
+                for kp in self._task_kp_indices
+            ],
+            dtype=np.float64,
+        )
 
         # Optional pinch contact loss (disabled unless retarget.contact is set).
         self.w_contact = float(retarget_config.get('w_contact', 0.0))
@@ -210,7 +258,7 @@ class KeyVectorOptimizer(BaseOptimizer):
         """
         origin_kp = keypoints[self._origin_kp_indices]  # (N, 3)
         task_kp   = keypoints[self._task_kp_indices]    # (N, 3)
-        vecs = (task_kp - origin_kp) * self.scaling_factor * M_TO_CM
+        vecs = (task_kp - origin_kp) * self.vector_scales[:, None] * M_TO_CM
         return vecs.astype(np.float64)
 
     # ------------------------------------------------------------------

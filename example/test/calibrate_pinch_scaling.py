@@ -33,7 +33,7 @@ from anydexretarget import Retargeter
 from calibrate_scaling import (  # Reuse the existing input-device plumbing.
     FINGER_NAMES,
     ROBOT_NAME_MAP,
-    _resolve_config_paths,
+    _resolve_config_path,
     _transform_input_keypoints,
     add_calibration_input_args,
     create_input_device,
@@ -151,8 +151,7 @@ def _collect_open_index_reach(input_device, retargeter, hand: str, duration: flo
 
 def _resolve_config(args) -> Path:
     robot_file = ROBOT_NAME_MAP[args.robot]
-    adaptive_path, _ = _resolve_config_paths(args, robot_file)
-    return adaptive_path.resolve()
+    return _resolve_config_path(args, robot_file).resolve()
 
 
 def _resolve_config_batch(args) -> list[Path]:

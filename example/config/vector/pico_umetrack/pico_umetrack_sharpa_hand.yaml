@@ -1,0 +1,44 @@
+# pico_umetrack (PICO stereo cameras + UmeTrack) - initialised from vector/pico4/pico4_sharpa_hand.yaml; tuned independently.
+# Sharpa Hand - KeyVectorOptimizer (Pico 4 input)
+# Scale values from pico4_wuji_hand.yaml
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "sharpa_hand"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  lp_alpha: 0.4
+
+  # Per-finger scale (vectors are grouped by task_kp's finger).
+  finger_scaling:
+    thumb: 1.15
+    index: 1.15
+    middle: 1.15
+    ring: 1.15
+    pinky: 1.15
+  key_vectors:
+  - {origin: right_hand_C_MC, task: right_thumb_fingertip, origin_kp: 0, task_kp: 4}
+  - {origin: right_hand_C_MC, task: right_index_fingertip, origin_kp: 0, task_kp: 8}
+  - {origin: right_hand_C_MC, task: right_middle_fingertip, origin_kp: 0, task_kp: 12}
+  - {origin: right_hand_C_MC, task: right_ring_fingertip, origin_kp: 0, task_kp: 16}
+  - {origin: right_hand_C_MC, task: right_pinky_fingertip, origin_kp: 0, task_kp: 20}
+  - {origin: right_hand_C_MC, task: right_thumb_PP, origin_kp: 0, task_kp: 2}
+  - {origin: right_hand_C_MC, task: right_index_MP, origin_kp: 0, task_kp: 6}
+  - {origin: right_hand_C_MC, task: right_middle_MP, origin_kp: 0, task_kp: 10}
+  - {origin: right_hand_C_MC, task: right_ring_MP, origin_kp: 0, task_kp: 14}
+  - {origin: right_hand_C_MC, task: right_pinky_MP, origin_kp: 0, task_kp: 18}
+
+  mediapipe_rotation:
+    x: -10.0
+    y: -7.0
+    z: -15.0
+
+render:
+  camera:
+    azimuth: 135
+    elevation: -20
+    distance: 0.5
