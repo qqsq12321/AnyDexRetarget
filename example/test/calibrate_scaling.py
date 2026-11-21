@@ -54,7 +54,7 @@ ROBOT_NAME_MAP = {
     "shadow": "shadow_hand", "wuji": "wuji_hand", "allegro": "allegro_hand",
     "leap": "leap_hand", "inspire": "inspire_hand", "ability": "ability_hand",
     "svh": "svh_hand", "rohand": "rohand", "linkerhand_l21": "linkerhand_l21",
-    "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand",
+    "linker_l6": "linker_l6", "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand",
     "gaia": "gaia_hand20",
 }
 
@@ -171,7 +171,7 @@ def get_robot_distances(optimizer):
         else np.zeros(robot.model.nq)
     robot.compute_forward_kinematics(qpos)
 
-    origin_pos = _get_link_pos(robot, optimizer.origin_link_name)
+    origin_pos = optimizer.get_origin_position()
 
     def pos_for(link_names, offsets):
         result = []

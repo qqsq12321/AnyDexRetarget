@@ -3,8 +3,8 @@
 
 Shows four hand skeletons side-by-side in the MuJoCo viewer:
   - Blue:   Raw MediaPipe skeleton (after coordinate transform, before scaling)
-  - Yellow: Retarget input skeleton uniformly scaled by pinch_scaling
-  - Green:  Full-hand target built by the optimizer's segment scaling
+  - Yellow: Retarget input scaled by pinch_scaling, plus target_offset
+  - Green:  Full-hand target built by segment scaling, plus target_offset
   - Red:    Robot FK skeleton (retargeting result)
 
 Usage:
@@ -136,8 +136,8 @@ def get_robot_fk_skeleton(optimizer, qpos):
             pos = pos + pose[:3, :3] @ np.asarray(offset, dtype=np.float64)
         return pos
 
-    # Get origin position
-    origin_pos = point_pos(optimizer.origin_link_name)
+    # Use the same virtual wrist as the optimizer, not a render-only offset.
+    origin_pos = optimizer.get_origin_position()
 
     points = [origin_pos.copy()]  # index 0 = origin
     connections = []
@@ -174,21 +174,21 @@ def build_scaled_skeleton(mediapipe_kp, optimizer):
 
     For the adaptive optimizer, PIP/DIP/TIP positions are taken directly from
     ``_compute_full_hand_vectors`` so the green visualization uses exactly the
-    same cumulative per-segment scaling and lateral scaling as retargeting.
+    same cumulative per-segment scaling, lateral scaling and target translation
+    as retargeting. The robot wrist remains the unshifted loss reference.
 
     Returns:
         points: scaled keypoints in meters (robot frame)
         connections: connections remapped to the returned points
     """
-    robot = optimizer.robot
-    origin_id = robot.get_link_index(optimizer.origin_link_name)
-    origin_pos = robot.data.oMf[origin_id].translation.copy()
+    origin_pos = optimizer.get_origin_position()
+    target_origin_pos = origin_pos + optimizer.target_offset
 
     scaling = optimizer.scaling if hasattr(optimizer, 'scaling') else 1.0
     wrist = mediapipe_kp[0]
 
     scaled_kp = np.zeros_like(mediapipe_kp)
-    scaled_kp[0] = origin_pos
+    scaled_kp[0] = target_origin_pos
 
     mp_finger_indices = (
         optimizer.mp_finger_indices
@@ -206,7 +206,8 @@ def build_scaled_skeleton(mediapipe_kp, optimizer):
 
         # Use the optimizer's own target builder instead of duplicating its
         # cumulative MCP->PIP->DIP->TIP scaling logic here.  It returns
-        # wrist-relative PIP/DIP/TIP vectors in centimeters.
+        # PIP/DIP/TIP targets relative to the robot wrist in centimeters,
+        # including target_offset (do not add it a second time).
         target_vectors_m = optimizer._compute_full_hand_vectors(
             mediapipe_kp,
             seg_full,
@@ -228,7 +229,7 @@ def build_scaled_skeleton(mediapipe_kp, optimizer):
         if lateral_scaling != 1.0:
             palm_vectors = palm_vectors.copy()
             palm_vectors[:, lateral_axis] *= lateral_scaling
-        scaled_kp[mcp_indices] = origin_pos + palm_vectors * seg_full[:nf, 0:1]
+        scaled_kp[mcp_indices] = target_origin_pos + palm_vectors * seg_full[:nf, 0:1]
 
         # Four-finger robots do not consume MediaPipe's pinky landmarks.  Return
         # only optimizer-active points so zero-initialized inactive joints are
@@ -236,7 +237,7 @@ def build_scaled_skeleton(mediapipe_kp, optimizer):
         active_indices = {0, *mcp_indices, *pip_indices, *dip_indices, *tip_indices}
     else:
         for i in range(1, 21):
-            scaled_kp[i] = origin_pos + (mediapipe_kp[i] - wrist) * scaling
+            scaled_kp[i] = target_origin_pos + (mediapipe_kp[i] - wrist) * scaling
 
     active_indices = sorted(active_indices)
     index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(active_indices)}
@@ -249,10 +250,8 @@ def build_scaled_skeleton(mediapipe_kp, optimizer):
 
 
 def build_pinch_scaled_skeleton(mediapipe_kp, optimizer):
-    """Build the whole-hand skeleton uniformly scaled by pinch_scaling."""
-    robot = optimizer.robot
-    origin_id = robot.get_link_index(optimizer.origin_link_name)
-    origin_pos = robot.data.oMf[origin_id].translation.copy()
+    """Build the uniformly scaled pinch target, including its translation."""
+    origin_pos = optimizer.get_origin_position() + optimizer.target_offset
 
     wrist = mediapipe_kp[0]
     scale = float(getattr(optimizer, 'pinch_scaling', 1.0))
@@ -377,9 +376,7 @@ def build_raw_skeleton(mediapipe_kp, optimizer):
 
     Places it at the robot origin for comparison.
     """
-    robot = optimizer.robot
-    origin_id = robot.get_link_index(optimizer.origin_link_name)
-    origin_pos = robot.data.oMf[origin_id].translation.copy()
+    origin_pos = optimizer.get_origin_position()
 
     wrist = mediapipe_kp[0]
     raw_kp = np.zeros_like(mediapipe_kp)
@@ -401,7 +398,7 @@ def main():
     parser.add_argument("--robot", default="leap",
         choices=["shadow", "wuji", "allegro", "leap",
                  "inspire", "ability", "svh", "rohand",
-                 "linkerhand_l21", "linker_l20", "unitree_dex5", "sharpa", "gaia"],
+                 "linkerhand_l21", "linker_l6", "linker_l20", "unitree_dex5", "sharpa", "gaia"],
                         help="Robot hand type (default: leap)")
     parser.add_argument("--hand", default="right", choices=["left", "right"])
     parser.add_argument("--alpha", type=float, default=0.25,
@@ -413,7 +410,7 @@ def main():
         "shadow": "shadow_hand", "wuji": "wuji_hand", "allegro": "allegro_hand",
         "leap": "leap_hand", "inspire": "inspire_hand", "ability": "ability_hand",
         "svh": "svh_hand", "rohand": "rohand", "linkerhand_l21": "linkerhand_l21",
-        "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand",
+        "linker_l6": "linker_l6", "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand",
         "gaia": "gaia_hand20",
     }
     robot_file = robot_name_map.get(args.robot, args.robot)
@@ -464,6 +461,10 @@ def main():
     # Initialize retargeter
     retargeter = Retargeter.from_yaml(str(config_file), args.hand)
     optimizer = retargeter.optimizer
+    print(f"Config: {config_file.resolve()}")
+    print(f"Retarget origin: {optimizer.origin_link_name}, "
+          f"local offset (m): {optimizer.origin_offset.tolist()}")
+    print(f"Target translation in optimizer coordinates (m): {optimizer.target_offset.tolist()}")
 
     input_device = open_input(args, args.hand)
 
@@ -582,8 +583,8 @@ def main():
     print("=" * 60)
     print("Debug Skeleton Viewer")
     print("  Blue  = Raw MediaPipe (no scaling)")
-    print("  Yellow= Retarget input uniformly scaled by pinch_scaling")
-    print("  Green = Optimizer full-hand target from segment_scaling")
+    print("  Yellow= Retarget input scaled by pinch_scaling + target_offset")
+    print("  Green = Optimizer full-hand target from segment_scaling + target_offset")
     print("  Red   = Robot FK (retargeting result)")
     print("=" * 60)
 

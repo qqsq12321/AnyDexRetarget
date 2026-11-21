@@ -18,6 +18,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PRESETS = {
     "rohand_right": PROJECT_ROOT / "assets/rohand/rohand_right_mujoco.xml",
     "rohand_left":  PROJECT_ROOT / "assets/rohand/rohand_left_mujoco.xml",
+    "linker_l6_right": PROJECT_ROOT / "assets/linker_l6/linker_l6_right_mujoco.xml",
+    "linker_l6_left": PROJECT_ROOT / "assets/linker_l6/linker_l6_left_mujoco.xml",
     "shadow_right": PROJECT_ROOT / "assets/shadow_hand/scene_right.xml",
     "shadow_left":  PROJECT_ROOT / "assets/shadow_hand/scene_left.xml",
     "allegro":      PROJECT_ROOT / "assets/allegro_hand/scene_right.xml",
@@ -37,6 +39,9 @@ if not xml_path.exists():
 
 model = mujoco.MjModel.from_xml_path(str(xml_path))
 data  = mujoco.MjData(model)
+home_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "home")
+if home_id >= 0:
+    mujoco.mj_resetDataKeyframe(model, data, home_id)
 
 # launch blocks until the window is closed; actuator sliders are in the right panel
 mujoco.viewer.launch(model, data)

@@ -221,8 +221,7 @@ def visualize_matplotlib(frames_raw, config_path, hand_side):
         robot = retargeter.optimizer.robot
         robot.compute_forward_kinematics(qpos)
 
-        origin_name = retargeter.optimizer.origin_link_name
-        origin_pos = robot.get_link_pose(robot.get_link_index(origin_name))[:3, 3] * M_TO_CM
+        origin_pos = retargeter.optimizer.get_origin_position() * M_TO_CM
 
         tip_names = retargeter.optimizer.task_link_names
         link1_names = retargeter.optimizer.link1_names
@@ -303,7 +302,7 @@ def main():
     parser.add_argument('--robot', type=str, default='allegro',
         choices=['shadow', 'wuji', 'allegro', 'leap',
                  'inspire', 'ability', 'svh', 'rohand',
-                 'linkerhand_l21', 'linker_l20', 'unitree_dex5', 'sharpa', 'gaia'],
+                 'linkerhand_l21', 'linker_l6', 'linker_l20', 'unitree_dex5', 'sharpa', 'gaia'],
                         help='Robot hand type (default: allegro)')
     parser.add_argument('--hand', type=str, default='right', choices=['left', 'right'])
     # Offline only: frames are read straight from the file, not through a device.
@@ -318,7 +317,7 @@ def main():
         "shadow": "shadow_hand", "wuji": "wuji_hand", "allegro": "allegro_hand",
         "leap": "leap_hand", "inspire": "inspire_hand", "ability": "ability_hand",
         "svh": "svh_hand", "rohand": "rohand", "linkerhand_l21": "linkerhand_l21",
-        "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand", "gaia": "gaia_hand20",
+        "linker_l6": "linker_l6", "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand", "gaia": "gaia_hand20",
     }
     robot_file = robot_name_map.get(args.robot, args.robot)
     cfg = args.config if args.config else f"config/adaptive/mediapipe/mediapipe_{robot_file}.yaml"

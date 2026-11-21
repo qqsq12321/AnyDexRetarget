@@ -63,6 +63,16 @@ class BaseOptimizer(ABC):
         retarget_config = config.get('retarget', {})
         self.huber_delta = retarget_config.get('huber_delta', 2.0)
         self.norm_delta = retarget_config.get('norm_delta', 0.04)
+        # Translate scaled targets in optimizer coordinates, not raw landmarks.
+        try:
+            self.target_offset = np.array(
+                retarget_config.get('target_offset', [0.0, 0.0, 0.0]),
+                dtype=np.float64, copy=True,
+            )
+        except (TypeError, ValueError) as exc:
+            raise ValueError('retarget.target_offset must be 3 finite values [x, y, z] in meters') from exc
+        if self.target_offset.shape != (3,) or not np.all(np.isfinite(self.target_offset)):
+            raise ValueError('retarget.target_offset must be 3 finite values [x, y, z] in meters')
 
         # Extract robot config
         robot_config = config.get('robot', {})
@@ -131,6 +141,16 @@ class BaseOptimizer(ABC):
 
         # Link names - from config or robot defaults
         self.origin_link_name = robot_config.get('origin_link', robot_defaults['origin_link'])
+        # Virtual wrist reference in origin_link local coordinates (meters).
+        origin_offset = robot_config.get(
+            'origin_offset', robot_defaults.get('origin_offset', [0.0, 0.0, 0.0])
+        )
+        try:
+            self.origin_offset = np.array(origin_offset, dtype=np.float64, copy=True)
+        except (TypeError, ValueError) as exc:
+            raise ValueError('robot.origin_offset must be 3 finite values [x, y, z] in meters') from exc
+        if self.origin_offset.shape != (3,) or not np.all(np.isfinite(self.origin_offset)):
+            raise ValueError('robot.origin_offset must be 3 finite values [x, y, z] in meters')
         self.task_link_names = robot_config.get('tip_links', robot_defaults['tip_links'])
         self.link1_names = robot_config.get('link1_names', robot_defaults['link1_names'])
         self.link3_names = robot_config.get('link3_names', robot_defaults['link3_names'])
@@ -148,6 +168,8 @@ class BaseOptimizer(ABC):
             len(self.link4_names),
         )
         neutral_qpos = robot_config.get('neutral_qpos', robot_defaults.get('neutral_qpos'))
+        if isinstance(neutral_qpos, dict):
+            neutral_qpos = neutral_qpos.get(self.hand_side)
         self.neutral_qpos = None if neutral_qpos is None else np.asarray(neutral_qpos, dtype=np.float64)
 
         # Number of fingers (4 for Allegro/Leap, 5 for others)
@@ -211,12 +233,15 @@ class BaseOptimizer(ABC):
 
         # Cache the robot's own finger roots, expressed in the optimizer frame.
         # These are mounting points fixed by the URDF, so one FK pass is enough.
-        # FullHandVec anchors each finger chain here instead of at the human
-        # wrist, which keeps the palm-length mismatch out of segment_scaling.
         self.finger_root_vectors = self._compute_finger_root_vectors()
 
         # Store last solution for warm start
         self.last_qpos = None
+
+    def get_origin_position(self) -> np.ndarray:
+        """Return the virtual wrist in world coordinates after the latest FK."""
+        pose = self.robot.get_link_pose(self.robot.get_link_index(self.origin_link_name))
+        return pose[:3, 3] + pose[:3, :3] @ self.origin_offset
 
     def _compute_finger_root_vectors(self) -> np.ndarray:
         """Return origin->finger-root vectors at the neutral pose, in cm."""
@@ -226,9 +251,7 @@ class BaseOptimizer(ABC):
             else np.zeros(self.robot.model.nq, dtype=np.float64)
         )
         self.robot.compute_forward_kinematics(qpos)
-        origin = self.robot.get_link_pose(
-            self.robot.get_link_index(self.origin_link_name)
-        )[:3, 3]
+        origin = self.get_origin_position()
         roots = np.zeros((self.num_fingers, 3), dtype=np.float64)
         for i in range(min(self.num_fingers, len(self.link1_names))):
             link_id = self.robot.get_link_index(self.link1_names[i])
@@ -270,7 +293,7 @@ class BaseOptimizer(ABC):
                 self.computed_link_offsets.append(np.asarray(offset, dtype=np.float64))
             return len(self.computed_link_indices) - 1
 
-        origin_idx = add_point(self.origin_link_name)
+        origin_idx = add_point(self.origin_link_name, self.origin_offset)
         self.origin_indices = [origin_idx for _ in range(self.num_fingers)]
         self.task_indices = [
             add_point(name, offset)
@@ -555,11 +578,12 @@ class BaseOptimizer(ABC):
         return np.array(tip_dirs, dtype=np.float64)
 
     def _compute_tip_vectors(self, keypoints: np.ndarray, scaling: float = 1.0) -> np.ndarray:
-        """Compute uniformly scaled origin->tip targets in cm."""
+        """Compute scaled tip targets relative to the robot wrist, in cm."""
         keypoints_cm = np.asarray(keypoints, dtype=np.float64) * M_TO_CM
         wrist = keypoints_cm[self.MP_ORIGIN_IDX]
         tip_indices = [self.MP_TIP_INDICES[i] for i in self.mp_finger_indices]
-        return (keypoints_cm[tip_indices] - wrist) * float(scaling)
+        return ((keypoints_cm[tip_indices] - wrist) * float(scaling)
+                + self.target_offset * M_TO_CM)
 
     def _compute_full_hand_vectors(
         self,
@@ -581,6 +605,8 @@ class BaseOptimizer(ABC):
         Nothing is anchored to the robot's own finger mounts.  Keeping the
         human's palm directions means opposition contacts survive scaling,
         while ``s_mcp`` still stretches the palm span to the robot's size.
+        The final targets include ``target_offset`` after all scaling, relative
+        to the unchanged robot wrist reference.
 
         Args:
             keypoints: (21, 3) MediaPipe keypoints in meters
@@ -621,4 +647,4 @@ class BaseOptimizer(ABC):
         tip_vectors = dip_vectors + distal * scaling[:nf, 3:4]
 
         vectors = np.vstack([pip_vectors, dip_vectors, tip_vectors])
-        return vectors.astype(np.float64)
+        return vectors.astype(np.float64) + self.target_offset * M_TO_CM

@@ -86,7 +86,7 @@ class DexPilotOptimizer(BaseOptimizer):
         # expanded DexPilot vector endpoints, which made the red skeleton draw
         # repeated DIP links instead of the five fingertips.
         all_points = [
-            (self.wrist_link_name, np.zeros(3, dtype=np.float64)),
+            (self.wrist_link_name, self.origin_offset),
             *[
                 (name, np.asarray(offset, dtype=np.float64))
                 for name, offset in zip(
@@ -232,10 +232,10 @@ class DexPilotOptimizer(BaseOptimizer):
             scaled_vectors[:self.num_proj]
         )
 
-        # Append wrist-to-fingertip vectors (no projection)
+        # Shift wrist-anchored targets after scaling, not finger-to-finger vectors.
         reference_vectors = np.concatenate([
             reference_vectors,
-            scaled_vectors[self.num_proj:]
+            scaled_vectors[self.num_proj:] + self.target_offset * M_TO_CM
         ], axis=0)
 
         return reference_vectors

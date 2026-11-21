@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com)
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot name="LinkerRightHand">
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0.00838418524272399 -0.224496713276239 0.0931513533183409" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528494989066335" ixy="-0.00279090677758996" ixz="6.58371402331279E-05" iyy="0.00322997293631204" iyz="-0.004874961984962" izz="0.0505605963810587"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_base_link.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_base_link.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="base_offset"> </link>
+  <link name="thumb_prox_base">
+    <inertial>
+      <origin xyz="0.00057092048957481 -0.255308446083398 0.0675232891457101" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528494988884344" ixy="-0.00279090693868345" ixz="6.58371246110166E-05" iyy="0.00322997295450001" iyz="-0.00487496198551251" izz="0.0505605963810698"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_thumb_prox_base.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_thumb_prox_base.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="thumb_prox">
+    <inertial>
+      <origin xyz="0.147086823573812 -0.0965506900068195 -0.211519357905214" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0391477691177365" ixy="0.000430833838450991" ixz="0.0225358052055652" iyy="0.0509877324216957" iyz="-0.00104880678473407" izz="0.016504566684572"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_thumb_prox.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_thumb_prox.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="thumb_dist">
+    <inertial>
+      <origin xyz="0.147086823573828 -0.0904506900067909 -0.294219357905228" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0391477691177343" ixy="0.000430833838450413" ixz="0.0225358052055663" iyy="0.0509877324216957" iyz="-0.00104880678473297" izz="0.0165045666845742"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_thumb_dist.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_thumb_dist.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="index_prox">
+    <inertial>
+      <origin xyz="0.00905239688154528 -0.254553508667788 -0.0453483793523875" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528494989066399" ixy="-0.00278602461949444" ixz="-0.000177656943093506" iyy="0.00443603046196062" iyz="-0.00891033861304819" izz="0.0493545388554037"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_index_prox.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_index_prox.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="index_dist">
+    <inertial>
+      <origin xyz="0.00784285830873942 -0.254553508667738 -0.0733401105678857" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528494989066399" ixy="-0.00278602461949444" ixz="-0.000177656943093439" iyy="0.0044360304619602" iyz="-0.00891033861304714" izz="0.0493545388554041"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_index_dist.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_index_dist.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="middle_prox">
+    <inertial>
+      <origin xyz="0.00905239688168757 -0.236512205395638 -0.0379613055090484" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528494989066412" ixy="-0.0027915043155795" ixz="-3.16042078463516E-05" iyy="0.00362768060395322" iyz="-0.00651389551838956" izz="0.0501628887134098"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_middle_prox.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_middle_prox.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="middle_dist">
+    <inertial>
+      <origin xyz="0.00811649853432021 -0.236512205395623 -0.065963521390702" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528494989066513" ixy="-0.00279150431549051" ixz="-3.16042078345738E-05" iyy="0.00362768060394312" iyz="-0.00651389551838962" izz="0.0501628887134098"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_middle_dist.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_middle_dist.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="ring_prox">
+    <inertial>
+      <origin xyz="0.00909532451243805 -0.218320388068124 -0.0215667243893383" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528504615901514" ixy="-0.00278078499499518" ixz="0.000115213642857673" iyy="0.00307329487175155" iyz="-0.00404603980175457" izz="0.0507163117621013"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_ring_prox.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_ring_prox.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="ring_dist">
+    <inertial>
+      <origin xyz="0.00815942617851926 -0.218320549470515 -0.0495689402710074" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.0528504615901514" ixy="-0.00278078499499518" ixz="0.000115213642857673" iyy="0.00307329487175155" iyz="-0.00404603980175457" izz="0.0507163117621013"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_ring_dist.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_ring_dist.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="little_prox">
+    <inertial>
+      <origin xyz="0.00908321923990609 -0.199568896623514 -0.0116288042893252" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.052850077338419" ixy="-0.0027784924475199" ixz="0.000212039736408693" iyy="0.00284946710210672" iyz="-0.00237451071491804" izz="0.0509405237834785"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_little_prox.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_little_prox.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="little_dist">
+    <inertial>
+      <origin xyz="0.00814732089709562 -0.199568993307333 -0.0396310201709379" rpy="0 0 0"/>
+      <mass value="0.989012019420379"/>
+      <inertia ixx="0.052850077338419" ixy="-0.0027784924475199" ixz="0.000212039736408693" iyy="0.00284946710210672" iyz="-0.00237451071491804" izz="0.0509405237834785"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="Visual/R_little_dist.stl"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.796078431372549 0.823529411764706 0.937254901960784 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="RoughCollision/R_little_dist.obj"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="thumb_tip_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.003 0.003 0.003"/>
+      </geometry>
+      <material name="tip_color">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="index_tip_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.003 0.003 0.003"/>
+      </geometry>
+      <material name="tip_color">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="middle_tip_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.003 0.003 0.003"/>
+      </geometry>
+      <material name="tip_color">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="ring_tip_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.003 0.003 0.003"/>
+      </geometry>
+      <material name="tip_color">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+  <link name="little_tip_link">
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.003 0.003 0.003"/>
+      </geometry>
+      <material name="tip_color">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="BASE_OFFSET" type="fixed">
+    <origin xyz="0 0 0.0302" rpy="0.03490658503988659 0 0"/>
+    <parent link="base_link"/>
+    <child link="base_offset"/>
+  </joint>
+  <joint name="thumbCMC" type="revolute">
+    <origin xyz="0.0078133 0.030812 0.025628" rpy="0 0 0"/>
+    <parent link="base_offset"/>
+    <child link="thumb_prox_base"/>
+    <axis xyz="0 0 -1"/>
+    <limit lower="0" upper="1.0471975511965976" effort="0" velocity="0"/>
+  </joint>
+  <joint name="thumbMCP" type="revolute">
+    <origin xyz="0.0081692 0.011981 0.00275" rpy="-1.4249 0 -0.61087"/>
+    <parent link="thumb_prox_base"/>
+    <child link="thumb_prox"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0.235968" upper="0.99" effort="0" velocity="0"/>
+  </joint>
+  <joint name="thumbPIP" type="revolute">
+    <origin xyz="0 -0.0061 0.0827" rpy="0 0 0"/>
+    <parent link="thumb_prox"/>
+    <child link="thumb_dist"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0.612611" upper="1.22" effort="0" velocity="0"/>
+    <mimic joint="thumbMCP" multiplier="0.611762" offset="0.612611"/>
+  </joint>
+  <joint name="thumb_tip_joint" type="fixed">
+    <parent link="thumb_dist"/>
+    <child link="thumb_tip_link"/>
+    <origin xyz="0.0 0.01 0.028" rpy="0 0 0"/>
+  </joint>
+  <joint name="indexMCP" type="revolute">
+    <origin xyz="-0.00066821 0.033041 0.11614" rpy="-0.087266 0 0"/>
+    <parent link="base_offset"/>
+    <child link="index_prox"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.167625" effort="0" velocity="0"/>
+  </joint>
+  <joint name="indexPIP" type="revolute">
+    <origin xyz="0.0012095 0 0.027992" rpy="0 0 0"/>
+    <parent link="index_prox"/>
+    <child link="index_dist"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.14" effort="0" velocity="0"/>
+    <mimic joint="indexMCP" multiplier="0.976341" offset="0"/>
+  </joint>
+  <joint name="index_tip_joint" type="fixed">
+    <parent link="index_dist"/>
+    <child link="index_tip_link"/>
+    <origin xyz="0.033 0.0 0.035" rpy="0 0 0"/>
+  </joint>
+  <joint name="middleMCP" type="revolute">
+    <origin xyz="-0.00066821 0.013196 0.12284" rpy="-0.034907 0 0"/>
+    <parent link="base_offset"/>
+    <child link="middle_prox"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.137955" effort="0" velocity="0"/>
+  </joint>
+  <joint name="middlePIP" type="revolute">
+    <origin xyz="0.0009359 0 0.028002" rpy="0 0 0"/>
+    <parent link="middle_prox"/>
+    <child link="middle_dist"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.14" effort="0" velocity="0"/>
+    <mimic joint="middleMCP" multiplier="1.001797" offset="0"/>
+  </joint>
+  <joint name="middle_tip_joint" type="fixed">
+    <parent link="middle_dist"/>
+    <child link="middle_tip_link"/>
+    <origin xyz="0.033 0 0.035" rpy="0 0 0"/>
+  </joint>
+  <joint name="ringMCP" type="revolute">
+    <origin xyz="-0.00067368 -0.0065844 0.11852" rpy="0.017453 0 -0.00017259"/>
+    <parent link="base_offset"/>
+    <child link="ring_prox"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.160644" effort="0" velocity="0"/>
+  </joint>
+  <joint name="ringPIP" type="revolute">
+    <origin xyz="0.0009359 0 0.028002" rpy="0 0 0"/>
+    <parent link="ring_prox"/>
+    <child link="ring_dist"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.14" effort="0" velocity="0"/>
+    <mimic joint="ringMCP" multiplier="0.982213" offset="0"/>
+  </joint>
+  <joint name="ring_tip_joint" type="fixed">
+    <parent link="ring_dist"/>
+    <child link="ring_tip_link"/>
+    <origin xyz="0.033 0 0.035" rpy="0 0 0"/>
+  </joint>
+  <joint name="littleMCP" type="revolute">
+    <origin xyz="-0.00067852 -0.025809 0.11521" rpy="0.05236 0 -0.00010364"/>
+    <parent link="base_offset"/>
+    <child link="little_prox"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.169370" effort="0" velocity="0"/>
+  </joint>
+  <joint name="littlePIP" type="revolute">
+    <origin xyz="0.0009359 0 0.028002" rpy="0 0 0"/>
+    <parent link="little_prox"/>
+    <child link="little_dist"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0" upper="1.14" effort="0" velocity="0"/>
+    <mimic joint="littleMCP" multiplier="0.974884" offset="0"/>
+  </joint>
+  <joint name="little_tip_joint" type="fixed">
+    <parent link="little_dist"/>
+    <child link="little_tip_link"/>
+    <origin xyz="0.033 0 0.035" rpy="0 0 0"/>
+  </joint>
+</robot>
