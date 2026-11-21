@@ -93,9 +93,7 @@ def _robot_tip_reaches(optimizer) -> np.ndarray:
         else np.zeros(optimizer.robot.model.nq, dtype=np.float64)
     )
     optimizer.robot.compute_forward_kinematics(qpos)
-    origin = optimizer.robot.get_link_pose(
-        optimizer.robot.get_link_index(optimizer.origin_link_name)
-    )[:3, 3]
+    origin = optimizer.get_origin_position()
     reaches = []
     for name, offset in zip(optimizer.task_link_names, optimizer.task_offsets):
         link_id = optimizer.robot.get_link_index(name)

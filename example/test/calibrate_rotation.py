@@ -117,7 +117,7 @@ def residuals_cm(human_roots, robot_roots, rotation, scale):
 
 
 def get_robot_finger_roots(optimizer):
-    """Robot finger roots at the neutral pose, relative to the origin link."""
+    """Robot finger roots at the neutral pose, relative to the virtual wrist."""
     robot = optimizer.robot
     qpos = (
         optimizer.neutral_qpos.copy()
@@ -125,7 +125,7 @@ def get_robot_finger_roots(optimizer):
         else np.zeros(robot.model.nq, dtype=np.float64)
     )
     robot.compute_forward_kinematics(qpos)
-    origin = robot.get_link_pose(robot.get_link_index(optimizer.origin_link_name))[:3, 3]
+    origin = optimizer.get_origin_position()
     roots = []
     for name in optimizer.link1_names:
         roots.append(robot.get_link_pose(robot.get_link_index(name))[:3, 3] - origin)

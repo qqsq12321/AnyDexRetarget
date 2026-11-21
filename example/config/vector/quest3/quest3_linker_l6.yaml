@@ -1,0 +1,33 @@
+# Linker L6 simulation baseline for quest3; not device/user calibrated.
+# Select left/right at runtime with --hand; see assets/linker_l6/README.md.
+
+optimizer:
+  type: "KeyVectorOptimizer"
+
+robot:
+  type: "linker_l6"
+
+retarget:
+  huber_delta: 2.0
+  norm_delta: 0.04
+  scaling_factor: 1.3
+  lp_alpha: 0.2
+
+  key_vectors:
+  - {origin: base_link, task: thumb_tip_link, origin_kp: 0, task_kp: 4}
+  - {origin: base_link, task: index_tip_link, origin_kp: 0, task_kp: 8}
+  - {origin: base_link, task: middle_tip_link, origin_kp: 0, task_kp: 12}
+  - {origin: base_link, task: ring_tip_link, origin_kp: 0, task_kp: 16}
+  - {origin: base_link, task: little_tip_link, origin_kp: 0, task_kp: 20}
+
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+
+render:
+  camera:
+    azimuth: 180
+    elevation: -10
+    distance: 0.5
+    lookat: [0, 0, 0.11]

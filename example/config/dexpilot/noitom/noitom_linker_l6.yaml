@@ -1,0 +1,29 @@
+# Linker L6 simulation baseline for noitom; not device/user calibrated.
+# Select left/right at runtime with --hand; see assets/linker_l6/README.md.
+
+optimizer:
+  type: DexPilot
+robot:
+  type: linker_l6
+retarget:
+  huber_delta: 3.0
+  norm_delta: 0.04
+  scaling: 1.6
+  project_dist: 0.03
+  escape_dist: 0.05
+  eta1: 0.0001
+  eta2: 0.03
+  lp_alpha: 0.2
+  mediapipe_rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+render:
+  camera:
+    azimuth: 180
+    elevation: -10
+    distance: 0.5
+    lookat:
+    - 0
+    - 0
+    - 0.11

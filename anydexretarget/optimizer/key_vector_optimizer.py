@@ -44,6 +44,9 @@ class KeyVectorOptimizer(BaseOptimizer):
           17-20 pinky). Fingers not listed fall back to scaling_factor; if
           scaling_factor is omitted, every finger used by key_vectors must be
           listed.
+        - retarget.target_offset: target translation in optimizer coordinates
+          (meters, default zero). Wrist-anchored vectors include the offset;
+          finger-to-finger vectors remain unchanged.
         - retarget.key_vectors (required), each entry:
             - origin: robot origin link name
             - task:   robot task link name
@@ -125,9 +128,8 @@ class KeyVectorOptimizer(BaseOptimizer):
         # origin) is only resolved once for FK/Jacobian computation. The same
         # link name with a different offset (e.g. a contact point placed at
         # the fingertip surface instead of the link origin) is a distinct
-        # point. key_vectors entries never carry an offset -- that mirrors
-        # the classic VectorOptimizer exactly -- only optional contact points
-        # (below) may.
+        # point. Key vectors use the virtual wrist offset for origin_link;
+        # optional contact points (below) have their own local offsets.
         point_names = []
         point_offsets = []
         point_indices = {}
@@ -141,11 +143,15 @@ class KeyVectorOptimizer(BaseOptimizer):
                 point_offsets.append(off)
             return point_indices[key]
 
+        def add_vector_point(name: str) -> int:
+            offset = self.origin_offset if name == self.origin_link_name else None
+            return add_point(name, offset)
+
         self._kv_origin_indices = np.asarray(
-            [add_point(name) for name in origin_names], dtype=int,
+            [add_vector_point(name) for name in origin_names], dtype=int,
         )
         self._kv_task_indices = np.asarray(
-            [add_point(name) for name in task_names], dtype=int,
+            [add_vector_point(name) for name in task_names], dtype=int,
         )
 
         self._origin_kp_indices = np.array([kv['origin_kp'] for kv in kv_config], dtype=int)
@@ -186,6 +192,10 @@ class KeyVectorOptimizer(BaseOptimizer):
             ],
             dtype=np.float64,
         )
+        self._target_offset_weights = np.array([
+            int(origin == self.origin_link_name) - int(task == self.origin_link_name)
+            for origin, task in zip(origin_names, task_names)
+        ], dtype=np.float64)
 
         # Optional pinch contact loss (disabled unless retarget.contact is set).
         self.w_contact = float(retarget_config.get('w_contact', 0.0))
@@ -259,6 +269,7 @@ class KeyVectorOptimizer(BaseOptimizer):
         origin_kp = keypoints[self._origin_kp_indices]  # (N, 3)
         task_kp   = keypoints[self._task_kp_indices]    # (N, 3)
         vecs = (task_kp - origin_kp) * self.vector_scales[:, None] * M_TO_CM
+        vecs += self._target_offset_weights[:, None] * (self.target_offset * M_TO_CM)
         return vecs.astype(np.float64)
 
     # ------------------------------------------------------------------

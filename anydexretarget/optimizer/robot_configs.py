@@ -135,6 +135,30 @@ ROBOT_CONFIGS = {
         'num_fingers': 5,
         'neutral_qpos': [0.0] * 17,
     },
+    # Linker L6 (6 independent joints and 5 coupled PIP joints; simulation only)
+    'linker_l6': {
+        'origin_link': 'base_link',
+        'tip_links': ['thumb_tip_link', 'index_tip_link', 'middle_tip_link', 'ring_tip_link', 'little_tip_link'],
+        'link1_names': ['thumb_prox_base', 'index_prox', 'middle_prox', 'ring_prox', 'little_prox'],
+        'link3_names': ['thumb_prox', 'index_prox', 'middle_prox', 'ring_prox', 'little_prox'],
+        'link4_names': ['thumb_dist', 'index_dist', 'middle_dist', 'ring_dist', 'little_dist'],
+        'urdf_subdir': 'assets/linker_l6',
+        'urdf_file': {
+            'right': 'right_linker/right_hand.urdf',
+            'left': 'left_linker/left_hand.urdf',
+        },
+        'mjcf_subdir': 'assets/linker_l6',
+        'mjcf_file': {
+            'right': 'linker_l6_right_mujoco.xml',
+            'left': 'linker_l6_left_mujoco.xml',
+        },
+        'num_fingers': 5,
+        # Pinocchio order: index, little, middle, ring (MCP/PIP), then thumb.
+        'neutral_qpos': {
+            'right': [0.0] * 9 + [0.235968, 0.612611 + 0.611762 * 0.235968],
+            'left': [0.0] * 9 + [0.235968, 0.611762 * 0.235968],
+        },
+    },
     # Linker L20 (GEORT L20 URDF, 21 revolute joints with 5 mimic joints)
     'linker_l20': {
         'origin_link': 'hand_base_link',

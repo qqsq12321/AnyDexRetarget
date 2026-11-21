@@ -67,14 +67,14 @@ def build_vector_scaled_skeleton(mediapipe_kp, optimizer):
 
     Points never referenced as a ``task_kp`` (and not the wrist) are not part
     of any loss term, so they are left out of the returned skeleton.
+    ``target_offset`` translates the whole displayed target. The robot wrist
+    stays fixed in the loss, so wrist-anchored targets include that translation.
 
     Returns:
         points: (M, 3) positions in meters (robot frame)
         connections: connections remapped to the returned points
     """
-    robot = optimizer.robot
-    origin_id = robot.get_link_index(optimizer.origin_link_name)
-    origin_pos = robot.data.oMf[origin_id].translation.copy()
+    origin_pos = optimizer.get_origin_position() + optimizer.target_offset
 
     wrist = mediapipe_kp[0]
     vector_scales = getattr(
@@ -115,7 +115,7 @@ def main():
     parser.add_argument("--robot", default="leap",
         choices=["shadow", "wuji", "allegro", "leap",
                  "inspire", "ability", "svh", "rohand",
-                 "linkerhand_l21", "linker_l20", "unitree_dex5", "sharpa", "gaia"],
+                 "linkerhand_l21", "linker_l6", "linker_l20", "unitree_dex5", "sharpa", "gaia"],
                         help="Robot hand type (default: leap)")
     parser.add_argument("--hand", default="right", choices=["left", "right"])
     parser.add_argument("--alpha", type=float, default=0.25,
@@ -127,7 +127,7 @@ def main():
         "shadow": "shadow_hand", "wuji": "wuji_hand", "allegro": "allegro_hand",
         "leap": "leap_hand", "inspire": "inspire_hand", "ability": "ability_hand",
         "svh": "svh_hand", "rohand": "rohand", "linkerhand_l21": "linkerhand_l21",
-        "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand",
+        "linker_l6": "linker_l6", "linker_l20": "linker_l20", "unitree_dex5": "unitree_dex5_hand", "sharpa": "sharpa_hand",
         "gaia": "gaia_hand20",
     }
     robot_file = robot_name_map.get(args.robot, args.robot)

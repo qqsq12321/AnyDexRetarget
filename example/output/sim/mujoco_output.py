@@ -58,6 +58,12 @@ ROBOT_HAND_CONFIGS = {
         "qpos_mapping": [0, 1, 2, 3, 4, 5, 9, 10, 11, 6, 7, 8, 12, 13, 14, 15, 16],
         "qpos_servo_alpha": 0.2,
     },
+    "linker_l6": {
+        "model_path": lambda side: str(PROJECT_ROOT / "assets" / "linker_l6" / f"linker_l6_{side}_mujoco.xml"),
+        "actuator_joint_names": [
+            "thumbCMC", "thumbMCP", "indexMCP", "middleMCP", "ringMCP", "littleMCP",
+        ],
+    },
     "linker_l20": {
         "model_path": lambda side: str(PROJECT_ROOT / "assets" / "linker_l20" / f"linker_l20_{side}_mujoco.xml"),
         # This is the actuator order declared by the reference L20 MJCF.  It is

@@ -84,6 +84,7 @@ example/config/
 | **Leap Hand** | `leap` | `leap_hand` | Leap Hand，4 指 / 16 自由度 |
 | **SVH Hand** | `svh` | `svh_hand` | Schunk SVH Hand，含 mimic 关节 |
 | **LinkerHand L21** | `linkerhand_l21` | `linkerhand_l21` | LinkerHand L21 |
+| **Linker L6** | `linker_l6` | `linker_l6` | 仅仿真，支持左右手，6 个独立关节 + 5 个耦合关节 |
 | **Linker L20** | `linker_l20` | `linker_l20` | DexForce Linker L20，5 指 / 21 revolute 关节，含 mimic 关节 |
 | **ROHand** | `rohand` | `rohand` | ROHand |
 | **Unitree Dex5** | `unitree_dex5` | `unitree_dex5_hand` | Unitree Dex5 |
@@ -207,6 +208,10 @@ python teleop_sim.py --input pico4 --robot gaia --hand right
 # PICO 双目相机 + UmeTrack（位置/旋转滤波）：自动启动同级 Hand 仓库的
 # tools/start_pico_on_demand_filtered.sh 并实时读取其 landmarks.jsonl；配置在 config/*/pico_umetrack/
 python teleop_sim.py --input pico_umetrack --robot linker_l20 --hand right
+
+# L6 仿真（支持 adaptive / vector / dexpilot）
+python teleop_sim.py --input pico_umetrack --robot linker_l6 --hand right
+python test/debug_skeleton_vector.py --input pico_umetrack --robot linker_l6 --hand right
 
 # 回放 Hand 仓库录制的 landmarks.jsonl
 python teleop_sim.py --input pico_umetrack --file /path/to/landmarks.jsonl --robot linker_l20 --hand right

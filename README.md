@@ -84,6 +84,7 @@ example/config/
 | **Leap Hand** | `leap` | `leap_hand` | Leap Hand, 4 fingers / 16 DOF |
 | **SVH Hand** | `svh` | `svh_hand` | Schunk SVH Hand with mimic joints |
 | **LinkerHand L21** | `linkerhand_l21` | `linkerhand_l21` | LinkerHand L21 |
+| **Linker L6** | `linker_l6` | `linker_l6` | Simulation only, left/right, 6 independent + 5 coupled joints |
 | **Linker L20** | `linker_l20` | `linker_l20` | DexForce Linker L20, 5 fingers / 21 revolute joints with mimic joints |
 | **ROHand** | `rohand` | `rohand` | ROHand |
 | **Unitree Dex5** | `unitree_dex5` | `unitree_dex5_hand` | Unitree Dex5 |
@@ -96,6 +97,27 @@ example/config/
 > cd example
 > python test/debug_skeleton.py --robot inspire --input noitom --noitom-local-ip 192.168.5.25
 > ```
+
+### Linker L6 Simulation
+
+Run from the repository root after activating your environment:
+
+```bash
+python example/test/view_model.py --model linker_l6_right
+python example/test/view_model.py --model linker_l6_left
+python example/teleop_sim.py --robot linker_l6 --input pico4 --hand right
+python example/teleop_sim.py --robot linker_l6 --input pico_umetrack --hand right
+python example/test/debug_skeleton_vector.py --robot linker_l6 --input pico_umetrack --hand right
+python example/teleop_sim.py --robot linker_l6 --optimizer vector --input replay --hand left
+python example/test/verify_linker_l6_mapping.py
+```
+
+L6 includes both hands and baseline configurations for all three optimizers
+and six input families, including Pico UmeTrack. Input-specific rotation/scaling
+still needs calibration.
+This is pose-tracking simulation, not hardware or calibrated contact dynamics.
+Asset provenance, the left thumb source-limit fix, and model regeneration
+instructions are in `assets/linker_l6/README.md`.
 
 ## Repository Structure
 
